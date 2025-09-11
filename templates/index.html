@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mon Portfolio - Météo en temps réel</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        /* Variables CSS pour un contrôle facile du thème */
+        :root {
+            --primary-accent-color: #DAA520; /* Or antique pour l'accentuation */
+            --secondary-accent-color: #8B4513; /* Marron terre pour les détails subtils */
+            --dark-bg-color: #1C1C1C; /* Fond très sombre */
+            --dark-surface-color: #282828; /* Surfaces des cartes, header, etc. */
+            --text-color-light: #F0F0F0; /* Texte clair sur fond sombre */
+            --text-color-muted: #A8A8A8; /* Texte secondaire/gris */
+            --border-color: #404040; /* Bordures subtiles */
+            --font-body: 'Montserrat', sans-serif;
+            --font-heading: 'Merriweather', serif;
+        }
+
+        /* Réinitialisation de base */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            line-height: 1.7;
+            color: var(--text-color-light);
+            background-color: var(--dark-bg-color);
+            scroll-behavior: smooth;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        a {
+            text-decoration: none;
+            color: var(--primary-accent-color);
+            transition: color 0.3s ease;
+        }
+
+        ul {
+            list-style: none;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* --- Header / Navigation --- */
+        .main-header {
+            background-color: var(--dark-surface-color);
+            box-shadow: 0 3px 8px rgba(0,0,0,0.3);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 0;
+        }
+
+        .logo {
+            font-family: var(--font-heading);
+            font-size: 2em;
+            color: var(--text-color-light);
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .nav-links ul {
+            display: flex;
+        }
+
+        .nav-links a {
+            color: var(--text-color-light);
+            padding: 8px 16px;
+            transition: color 0.3s ease, transform 0.3s ease;
+            font-weight: 500;
+            position: relative;
+        }
+
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            background-color: var(--primary-accent-color);
+            left: 50%;
+            bottom: 0;
+            transform: translateX(-50%);
+            transition: width 0.3s ease;
+        }
+
+        .nav-links a:hover::after,
+        .nav-links a.active::after {
+            width: calc(100% - 32px);
+        }
+
+        .nav-links a:hover {
+            color: var(--primary-accent-color);
+            transform: translateY(-2px);
+        }
+
+        .menu-toggle {
+            display: none;
+            flex-direction: column;
+            cursor: pointer;
+            z-index: 1001;
+        }
+
+        .menu-toggle span {
+            height: 2.5px;
+            width: 24px;
+            background-color: var(--text-color-light);
+            margin-bottom: 4px;
+            border-radius: 2px;
+            transition: all 0.3s ease;
+        }
+
+        /* --- Breadcrumb --- */
+        .breadcrumb {
+            background-color: var(--dark-surface-color);
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-color);
+            text-align: left;
+        }
+        .breadcrumb ul {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            margin: 0;
+            padding: 0;
+        }
+        .breadcrumb li {
+            font-size: 0.9em;
+            color: var(--text-color-muted);
+            display: flex;
+            align-items: center;
+        }
+        .breadcrumb li:not(:last-child)::after {
+            content: '>';
+            margin: 0 8px;
+            color: var(--text-color-muted);
+        }
+        .breadcrumb a {
+            color: var(--text-color-muted);
+            transition: color 0.3s ease;
+        }
+        .breadcrumb a:hover {
+            color: var(--primary-accent-color);
+        }
+        .breadcrumb li:last-child a {
+            color: var(--primary-accent-color);
+            pointer-events: none; /* Make current page not clickable */
+        }
+
+        /* --- Sections Générales --- */
+        section {
+            padding: 90px 0;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        h2 {
+            font-family: var(--font-heading);
+            font-size: 2.8em;
+            color: var(--text-color-light);
+            margin-bottom: 45px;
+            position: relative;
+            display: inline-block;
+            letter-spacing: 0.7px;
+        }
+
+        h2::after {
+            content: '';
+            position: absolute;
+            width: 60px;
+            height: 2.5px;
+            background-color: var(--primary-accent-color);
+            bottom: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-radius: 1px;
+        }
+
+        /* --- STYLES FOR WEATHER APP --- */
+        #weather-app-content {
+            padding-top: 45px;
+        }
+
+        .weather-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: var(--dark-surface-color);
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            text-align: center;
+            border: 1px solid var(--border-color);
+        }
+
+        .weather-form {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+
+        .weather-form input[type="text"] {
+            flex-grow: 1;
+            padding: 12px;
+            background-color: var(--dark-bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-family: var(--font-body);
+            color: var(--text-color-light);
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .weather-form input[type="text"]:focus {
+            outline: none;
+            border-color: var(--primary-accent-color);
+            box-shadow: 0 0 0 3px rgba(218, 165, 32, 0.2);
+        }
+
+        .weather-form button {
+            padding: 12px 20px;
+            border: none;
+            background-color: var(--primary-accent-color);
+            color: var(--dark-bg-color);
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background-color 0.3s ease;
+        }
+
+        .weather-form button:hover {
+            background-color: var(--secondary-accent-color);
+        }
+
+        #weather-result {
+            margin-top: 20px;
+            text-align: center;
+            border-top: 1px solid var(--border-color);
+            padding-top: 20px;
+        }
+
+        .weather-data-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .weather-card {
+            background-color: var(--dark-bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            transition: transform 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .weather-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .weather-card .emoji {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            display: block;
+            position: relative;
+            animation: bounce 1s ease-in-out infinite;
+        }
+        
+        @keyframes bounce {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-5px);
+            }
+        }
+
+        .weather-card strong {
+            display: block;
+            font-size: 1.1em;
+            font-weight: 600;
+            color: var(--primary-accent-color);
+            margin-bottom: 5px;
+        }
+
+        .weather-card span {
+            font-family: var(--font-heading);
+            font-size: 1.5em;
+            color: var(--text-color-light);
+        }
+
+        .weather-info h3 {
+            font-family: var(--font-heading);
+            font-size: 2em;
+            color: var(--text-color-light);
+            text-align: center;
+            margin: 0 0 10px 0;
+        }
+        .weather-info img {
+            max-width: 80px;
+            height: auto;
+        }
+
+        /* --- Contact Section --- */
+        #contact .contact-form {
+            max-width: 700px;
+            margin: 0 auto;
+            background-color: var(--dark-surface-color);
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 5px 18px rgba(0,0,0,0.4);
+            text-align: left;
+            border: 1px solid var(--border-color);
+        }
+
+        #contact .form-group {
+            margin-bottom: 20px;
+        }
+
+        #contact label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+            color: var(--text-color-light);
+            font-size: 1em;
+        }
+
+        #contact input[type="text"],
+        #contact input[type="email"],
+        #contact textarea {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--dark-bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-family: var(--font-body);
+            font-size: 0.95em;
+            color: var(--text-color-light);
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        #contact input[type="text"]:focus,
+        #contact input[type="email"]:focus,
+        #contact textarea:focus {
+            outline: none;
+            border-color: var(--primary-accent-color);
+            box-shadow: 0 0 0 3px rgba(218, 165, 32, 0.2);
+        }
+
+        #contact textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        #contact button {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            background-color: var(--primary-accent-color);
+            color: var(--dark-bg-color);
+            border: none;
+            border-radius: 4px;
+            font-size: 1.05em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+        }
+
+        #contact button:hover {
+            background-color: var(--secondary-accent-color);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.4);
+        }
+
+        .social-links {
+            margin-top: 30px;
+            display: flex;
+            justify-content: center;
+            gap: 18px;
+        }
+
+        .social-links a {
+            display: inline-block;
+            transition: transform 0.3s ease;
+        }
+
+        .social-links a:hover {
+            transform: translateY(-5px);
+        }
+        .social-links img {
+            width: 50px;
+            height: 50px;
+        }
+
+        /* --- Footer --- */
+        .main-footer {
+            background-color: var(--dark-surface-color);
+            color: var(--text-color-muted);
+            text-align: center;
+            padding: 30px 0;
+            font-size: 0.85em;
+            border-top: 1px solid var(--border-color);
+        }
+
+        /* --- Responsive Design --- */
+        @media (max-width: 992px) {
+            .nav-links ul {
+                display: none;
+                flex-direction: column;
+                position: absolute;
+                top: 64px;
+                left: 0;
+                width: 100%;
+                background-color: var(--dark-surface-color);
+            }
+
+            .nav-links.active ul {
+                display: flex;
+            }
+
+            .menu-toggle {
+                display: flex;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="main-header">
+        <div class="container navbar">
+            <a href="index.html" class="logo">Mon Portfolio</a>
+            <div class="menu-toggle" id="mobile-menu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+            <nav class="nav-links" id="nav-menu">
+                <ul>
+                    <li><a href="index.html#hero">Accueil</a></li>
+                    <li><a href="index.html#about">À Propos</a></li>
+                    <li><a href="index.html#skills">Compétences</a></li>
+                    <li><a href="index.html#portfolio">Portfolio</a></li>
+                    <li><a href="index.html#contact">Contact</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <div class="breadcrumb">
+        <div class="container">
+            <ul>
+                <li><a href="index.html">Accueil</a></li>
+                <li><a href="index.html#portfolio">Portfolio</a></li>
+                <li><a href="#">Météo en temps réel</a></li>
+            </ul>
+        </div>
+    </div>
+
+    <main>
+        <section id="weather-app-content">
+            <div class="container">
+                <h2>Météo en temps réel ☀️</h2>
+                <p style="color: var(--text-color-muted); max-width: 700px; margin: 0 auto 30px;">
+                    Cette application simple vous permet d'obtenir les conditions météorologiques en temps réel pour n'importe quelle ville.
+                    Ce projet démontre mes compétences en Python, en interaction avec une API et en déploiement d'une application web.
+                </p>
+                <div class="weather-container">
+                    <form id="search-form" class="weather-form">
+                        <input type="text" id="city-input" placeholder="Entrez le nom d'une ville" required>
+                        <button type="submit" id="search-btn">Rechercher</button>
+                    </form>
+                    <div id="weather-result">
+                        <!-- Les résultats s'afficheront ici -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="contact">
+            <div class="container">
+                <h2>Me Contacter</h2>
+                <div class="social-links">
+                    <a href="https://www.linkedin.com/in/alexandre-huberty" target="_blank" aria-label="LinkedIn">
+                        <img src="https://img.icons8.com/color/40/000000/linkedin.png" alt="LinkedIn">
+                    </a>
+                    <a href="https://github.com/alexandrehbty" target="_blank" aria-label="GitHub">
+                        <img src="https://img.icons8.com/ios-filled/40/ffffff/github.png" alt="GitHub">
+                    </a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="main-footer">
+        <div class="container">
+            <p>&copy; 2025 Mon Portfolio. Tous droits réservés.</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const mobileMenu = document.getElementById('mobile-menu');
+            const navMenu = document.getElementById('nav-menu');
+
+            // Toggle mobile menu
+            mobileMenu.addEventListener('click', () => {
+                navMenu.classList.toggle('active');
+                mobileMenu.classList.toggle('active');
+            });
+            
+            // Script pour l'application météo
+            const searchForm = document.getElementById('search-form');
+            const resultDiv = document.getElementById('weather-result');
+
+            searchForm.addEventListener('submit', async function(event) {
+                event.preventDefault();
+                const city = document.getElementById('city-input').value;
+                resultDiv.innerHTML = '<p style="text-align:center; color: var(--text-color-muted);">Chargement...</p>';
+
+                try {
+                    const response = await fetch(`/get_weather?city=${encodeURIComponent(city)}`);
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        const formatTime = (timestamp) => {
+                            const date = new Date(timestamp * 1000);
+                            return date.toLocaleTimeString('fr-FR', {hour: '2-digit', minute:'2-digit'});
+                        };
+
+                        const weatherIcons = {
+                            "01d": "☀️", // clear sky day
+                            "01n": "🌙", // clear sky night
+                            "02d": "🌤️", // few clouds day
+                            "02n": "☁️", // few clouds night
+                            "03d": "☁️", // scattered clouds day
+                            "03n": "☁️", // scattered clouds night
+                            "04d": "☁️", // broken clouds day
+                            "04n": "☁️", // broken clouds night
+                            "09d": "🌧️", // shower rain day
+                            "09n": "🌧️", // shower rain night
+                            "10d": "🌦️", // rain day
+                            "10n": "🌧️", // rain night
+                            "11d": "🌩️", // thunderstorm day
+                            "11n": "🌩️", // thunderstorm night
+                            "13d": "🌨️", // snow day
+                            "13n": "🌨️", // snow night
+                            "50d": "🌫️", // mist day
+                            "50n": "🌫️"  // mist night
+                        };
+
+                        const getEmoji = (iconCode) => {
+                            return weatherIcons[iconCode] || '❓';
+                        };
+                        
+                        resultDiv.innerHTML = `
+                            <div class="weather-info">
+                                <h3>${data.city}</h3>
+                                <p style="text-align: center; font-size: 3em; margin: 10px 0;">${getEmoji(data.icon)}</p>
+                                <p style="text-align: center; color: var(--text-color-light); font-size: 1.2em;">${data.description}</p>
+                            </div>
+                            <div class="weather-data-grid">
+                                <div class="weather-card">
+                                    <span class="emoji">🌡️</span>
+                                    <strong>Température</strong>
+                                    <span>${data.temperature}°C</span>
+                                </div>
+                                <div class="weather-card">
+                                    <span class="emoji">🍃</span>
+                                    <strong>Vent</strong>
+                                    <span>${data.wind_speed} m/s</span>
+                                </div>
+                                <div class="weather-card">
+                                    <span class="emoji">💧</span>
+                                    <strong>Humidité</strong>
+                                    <span>${data.humidity}%</span>
+                                </div>
+                                <div class="weather-card">
+                                    <span class="emoji">⏱️</span>
+                                    <strong>Pression</strong>
+                                    <span>${data.pressure} hPa</span>
+                                </div>
+                                <div class="weather-card">
+                                    <span class="emoji">👁️</span>
+                                    <strong>Visibilité</strong>
+                                    <span>${data.visibility / 1000} km</span>
+                                </div>
+                                <div class="weather-card">
+                                    <span class="emoji">🌅</span>
+                                    <strong>Lever du soleil</strong>
+                                    <span>${formatTime(data.sunrise)}</span>
+                                </div>
+                                <div class="weather-card">
+                                    <span class="emoji">🌇</span>
+                                    <strong>Coucher du soleil</strong>
+                                    <span>${formatTime(data.sunset)}</span>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        resultDiv.innerHTML = `<p style="color:red; text-align:center;">${data.error}</p>`;
+                    }
+                } catch (error) {
+                    resultDiv.innerHTML = '<p style="color:red; text-align:center;">Une erreur est survenue. Veuillez réessayer.</p>';
+                    console.error('Erreur:', error);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
