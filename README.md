@@ -8,7 +8,7 @@
 
 > **Démonstration technique :** Conception d'un backend météo résilient ("Crash-Proof"), capable d'adapter ses timeouts en temps réel selon la congestion réseau. Optimisé pour les environnements contraints (Render Free Tier, 512Mo RAM).
 
-🔗 **Démo Live :** [Insérer le lien de ton application Render ici]
+🔗 **Démo Live :** https://weather-dashboard-c7gh.onrender.com/
 
 ---
 
@@ -64,7 +64,7 @@ Prérequis : Python 3.9+
 
 1.  **Cloner le dépôt**
     ```bash
-    git clone [[https://github.com/votre-username/votre-repo.git](https://github.com/votre-username/votre-repo.git)]
+    git clone https://github.com/alexandrehbty/weather-dashboard.git
     cd votre-repo
     ```
 

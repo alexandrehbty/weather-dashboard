@@ -358,4 +358,4 @@ document.addEventListener('DOMContentLoaded', () => {
   } else {
     setStatus('info', 'Entrez une ville ou cliquez sur la carte pour afficher la météo.');
   }
-});
+}); 
