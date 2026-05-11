@@ -308,7 +308,23 @@ document.addEventListener('DOMContentLoaded', () => {
       cityInput.focus();
       return;
     }
-    await runQuery({ city }, { source: 'form' });
+
+    // 💡 NOUVEAU : On cherche si le texte tapé correspond à une suggestion en mémoire
+    const matchedSuggestion = currentSuggestions.find(s => s.label === city);
+
+    if (matchedSuggestion) {
+      // Si on a une correspondance parfaite, on envoie le GPS !
+      // On passe la ville aussi pour l'affichage, mais le backend priorisera lat/lon
+      await runQuery({ 
+        city: matchedSuggestion.label, 
+        lat: matchedSuggestion.lat, 
+        lon: matchedSuggestion.lon 
+      }, { source: 'form' });
+    } else {
+      // Sinon (l'utilisateur a juste tapé un nom sans utiliser l'autocomplétion), 
+      // on fait une recherche texte classique
+      await runQuery({ city }, { source: 'form' });
+    }
   });
 
   // ----------------------------
@@ -316,14 +332,15 @@ document.addEventListener('DOMContentLoaded', () => {
   // ----------------------------
   const datalist = document.getElementById('city-suggestions');
   let debounceTimer;
+  
+  // 💡 NOUVEAU : La mémoire de nos suggestions
+  let currentSuggestions = []; 
 
   cityInput.addEventListener('input', (e) => {
     const val = e.target.value;
     
-    // On ne cherche pas si moins de 3 lettres
     if (val.length < 3) return;
 
-    // Debounce : On attend que l'utilisateur arrête d'écrire depuis 300ms
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(async () => {
         try {
@@ -332,10 +349,11 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const suggestions = await res.json();
             
-            // On vide l'ancienne liste
+            // 💡 NOUVEAU : On sauvegarde les données complètes (avec lat/lon) en mémoire
+            currentSuggestions = suggestions; 
+            
             datalist.innerHTML = '';
             
-            // On remplit avec les nouvelles propositions
             suggestions.forEach(item => {
                 const option = document.createElement('option');
                 option.value = item.label;

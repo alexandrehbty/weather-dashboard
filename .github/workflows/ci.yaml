@@ -26,12 +26,20 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        pip install pytest  # Nécessaire pour lancer les tests
+        pip install pytest pytest-playwright pytest-rerunfailures # NOUVEAU
 
-    # 4. Lancer les tests unitaires
-    - name: Run Unit Tests
-      # On définit une fausse API KEY pour les tests (le mock empêche l'appel réel)
+    # 4. Installer les navigateurs pour Playwright (NOUVEAU)
+    - name: Install Playwright Browsers
+      run: playwright install --with-deps chromium
+
+    # 5. Lancer le serveur et les tests E2E (MODIFIÉ)
+    - name: Run E2E Tests
       env:
         API_KEY: "test_dummy_key"
       run: |
-        python -m unittest tests/test_suite.py
+        # Lancer le serveur Flask en arrière-plan
+        python app.py &
+        # Attendre 3 secondes que le serveur démarre
+        sleep 3
+        # Lancer les tests E2E avec Retry
+        pytest e2e/test_e2e_cold_start.py --reruns 2

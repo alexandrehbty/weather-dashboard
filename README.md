@@ -1,10 +1,12 @@
 # 🌦️ GeoMeteo — Architecture Résiliente & Algorithmique
 
-![CI Status](https://github.com/TON_USERNAME/TON_REPO/actions/workflows/ci.yml/badge.svg)
+![CI Status](https://github.com/alexandrehbty/weather-dashboard/actions/workflows/ci.yaml/badge.svg)
+![Coverage](https://img.shields.io/badge/Coverage-86%25-brightgreen.svg)
+![E2E Tests](https://img.shields.io/badge/E2E%20Tests-Success%20100%25-green.svg)
 ![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)
-![Flask](https://img.shields.io/badge/Flask-Senior_Setup-green.svg)
+![Flask](https://img.shields.io/badge/Flask-3.0+-green.svg)
 ![Algorithm](https://img.shields.io/badge/Algo-Jacobson%2FKarn-orange)
-![Status](https://img.shields.io/badge/Status-Production_Ready-success)
+![Status](https://img.shields.io/badge/Status-Production%20Ready-success)
 
 > **Démonstration technique :** Conception d'un backend météo résilient ("Crash-Proof"), capable d'adapter ses timeouts en temps réel selon la congestion réseau. Optimisé pour les environnements contraints (Render Free Tier, 512Mo RAM).
 
@@ -24,7 +26,7 @@ Le défi technique : **"Comment garantir une UX fluide et un Backend stable alor
 
 ---
 
-## 🧠 Le "Cerveau" : Algorithme Jacobson/Karn (`geometeo_algo_2.py`)
+## 🧠 Le "Cerveau" : Algorithme Jacobson/Karn (`algo.py`)
 
 C'est le cœur du système. Au lieu d'utiliser un timeout statique (ex: 5s), l'application écoute le réseau et apprend.
 
@@ -64,8 +66,8 @@ Prérequis : Python 3.9+
 
 1.  **Cloner le dépôt**
     ```bash
-    git clone https://github.com/alexandrehbty/weather-dashboard.git
-    cd votre-repo
+    git clone [https://github.com/alexandrehbty/weather-dashboard.git](https://github.com/alexandrehbty/weather-dashboard.git)
+    cd weather-dashboard
     ```
 
 2.  **Créer l'environnement virtuel**
@@ -87,6 +89,7 @@ Prérequis : Python 3.9+
 4.  **Configuration (.env)**
     Créez un fichier `.env` à la racine :
     ```ini
+    # Obtenez votre clé sur [https://home.openweathermap.org/api_keys](https://home.openweathermap.org/api_keys)
     API_KEY=votre_cle_api_openweather
     FLASK_DEBUG=1
     # Paramètres avancés (Defaults robustes inclus dans le code)
@@ -110,10 +113,10 @@ Le projet intègre une suite de tests unitaires automatisés (`unittest`) couvra
 Name                  Stmts   Miss  Cover
 -----------------------------------------
 algo.py                  37      5    86% <-- Core Algorithm Logic
-app.py                  221     64    71% <-- API Endpoints
-tests\test_suite.py     112      1    99%
+app.py                  221     47    79% <-- API Endpoints
+tests\test_suite.py     121      1    99%
 -----------------------------------------
-TOTAL                   370     70    81% <-- Production Grade
+TOTAL                   379     53    86% <-- Production Grade
 
 ---
 
@@ -150,4 +153,4 @@ Le projet est configuré pour un déploiement "Cloud Native".
 ├── Procfile                 # Configuration de déploiement (Gunicorn pour Render)
 ├── readme.md                # Documentation technique complète
 ├── requirements.txt         # Dépendances Python (verrouillées)
-└── .gitignore               # Exclusion des fichiers temporaires (__pycache__, venv)
+└── .gitignore               # Exclusion des fichiers temporaires (pycache, venv)

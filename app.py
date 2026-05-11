@@ -179,11 +179,12 @@ def _parse_lat_lon(raw_lat: Optional[str], raw_lon: Optional[str]) -> Optional[T
 
 
 def _cache_key(city: Optional[str], latlon: Optional[Tuple[float, float]]) -> str:
+    # On priorise le cache par GPS
+    if latlon is not None:
+        return f"coord:{latlon[0]:.4f},{latlon[1]:.4f}"
     if city:
         return f"city:{city.lower()}"
-    assert latlon is not None
-    # arrondi pour augmenter les hits cache sans trop dégrader
-    return f"coord:{latlon[0]:.4f},{latlon[1]:.4f}"
+    return "unknown"
 
 
 # -----------------------------------------------------------------------------
@@ -197,8 +198,15 @@ def _map_openweather(data: Dict[str, Any]) -> Dict[str, Any]:
     sys = data.get("sys") or {}
     coord = data.get("coord") or {}
 
+    # 💡 MODIFICATION : On récupère le pays et on le fusionne avec le nom
+    city_name = data.get("name", "")
+    country = sys.get("country", "")
+    
+    # Formate en "Berlin, DE" si on a le pays, sinon juste "Berlin"
+    display_city = f"{city_name}, {country}" if city_name and country else city_name
+
     return {
-        "city": data.get("name", ""),
+        "city": display_city, # ✅ CORRIGÉ
         "temperature": main.get("temp"),
         "description": weather0.get("description", ""),
         "icon": weather0.get("icon", ""),
@@ -270,11 +278,27 @@ def autocomplete():
     query = request.args.get("q", "").strip()
     if not query or len(query) < 2: return jsonify([])
 
+    # 1. On demande le timeout intelligent au cerveau (Jacobson)
+    dynamic_timeout = brain.get_timeout() 
+    
+    # On prépare les timeouts (Connexion, Lecture dynamique)
+    timeouts = (settings.connect_timeout_s, dynamic_timeout)
+    
     params = {"q": query, "limit": 5, "appid": settings.api_key}
+    start = time.time()
+    
     try:
-        resp = requests.get(settings.geocoding_url, params=params, timeout=2.0)
+        # 2. Utilisation de 'session.get' pour bénéficier des Retries
+        resp = session.get(settings.geocoding_url, params=params, timeout=timeouts)
+        
+        latency = time.time() - start
+        
+        # 3. On informe le cerveau du succès (même si c'est une 404, le réseau a répondu)
+        brain.update(latency, success=True)
+        
         resp.raise_for_status()
         data = resp.json()
+        
         suggestions = []
         for item in data:
             name = item.get('name')
@@ -282,8 +306,14 @@ def autocomplete():
             state = item.get('state', '')
             label = f"{name}, {state}, {country}" if state else f"{name}, {country}"
             suggestions.append({"label": label, "lat": item.get('lat'), "lon": item.get('lon')})
+            
         return jsonify(suggestions)
+
     except Exception as e:
+        # 4. En cas de timeout réel, on applique la punition de Karn (Backoff)
+        latency = time.time() - start
+        brain.update(latency, success=False)
+        
         logger.warning(f"Autocomplete error: {e}")
         return jsonify([])
 
@@ -320,11 +350,11 @@ def _get_weather_impl():
         "lang": "fr",
     }
 
-    if city:
-        params["q"] = city
-    else:
-        assert latlon is not None
+    # 💡 MODIFICATION : Priorité absolue aux coordonnées GPS
+    if latlon is not None:
         params["lat"], params["lon"] = latlon
+    elif city:
+        params["q"] = city
 
 
     # ✅ MODIF 1 : On demande au cerveau le timeout dynamique
@@ -376,6 +406,11 @@ def _get_weather_impl():
         data = resp.json()
         weather = _map_openweather(data)
 
+        # Correction : pour éviter que OWM renvoie le nom du quartier/station météo 
+        # quand on cherche par coordonnées GPS. Si le frontend nous a envoyé le vrai nom, on l'impose.
+        if city and latlon:
+            weather["city"] = city
+        
         if not weather.get("city") or weather.get("temperature") is None:
             logger.warning(
                 '{"level":"WARN","request_id":"%s","msg":"Réponse OpenWeather inattendue","status":%s,"duration_ms":%s}',

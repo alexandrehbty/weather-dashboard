@@ -3,3 +3,5 @@ htmlcov/
 .coverage
 .env
 venv/
+documentation_technique/
+simulation/
