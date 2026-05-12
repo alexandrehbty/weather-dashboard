@@ -1,5 +1,5 @@
 # 1. Utiliser une image Python officielle légère
-FROM python:3.10-slim
+FROM python:3.13-slim
 
 # 2. Définir le dossier de travail à l'intérieur de la "boîte"
 WORKDIR /app
