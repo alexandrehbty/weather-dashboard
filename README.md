@@ -181,7 +181,7 @@ terraform apply -var="image_url=votre_repo/image:latest"
 ---
 
 ## 📂 Structure du projet
-
+```text
 /
 ├── .github/
 │   └── workflows/
@@ -199,3 +199,4 @@ terraform apply -var="image_url=votre_repo/image:latest"
 ├── readme.md                # Documentation technique complète
 ├── requirements.txt         # Dépendances Python (verrouillées)
 └── .gitignore               # Exclusion des fichiers temporaires (pycache, venv)
+```
