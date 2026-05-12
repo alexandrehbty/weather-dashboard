@@ -186,17 +186,25 @@ terraform apply -var="image_url=votre_repo/image:latest"
 ├── .github/
 │   └── workflows/
 │       └── ci.yaml          # Pipeline d'Intégration Continue (GitHub Actions)
+├── e2e/                     # Tests de bout en bout (Playwright)
+│   └── test_e2e_cold_start.py
 ├── static/
 │   ├── script.js            # Logique Frontend & Autocomplétion (Vanilla JS)
 │   └── style.css            # Design "Dark Surface & Gold" (CSS3)
 ├── templates/
 │   └── index.html           # Interface utilisateur (Jinja2 Template)
+├── terraform/               # Infrastructure as Code (8 Cloud Providers)
+│   ├── aws/                 # Configuration AWS App Runner
+│   ├── azure/               # Configuration Azure Container Apps
+│   ├── gcp/                 # Configuration Google Cloud Run
+│   └── ...                  # (Autres fournisseurs)
 ├── tests/
 │   └── test_suite.py        # Tests unitaires (Jacobson/Karn & Endpoints)
 ├── algo.py                  # Le "Cerveau" (Algorithme Jacobson & Thread Safety)
 ├── app.py                   # Contrôleur Principal (Flask, Cache, Rate-Limiting)
-├── Procfile                 # Configuration de déploiement (Gunicorn pour Render)
-├── readme.md                # Documentation technique complète
-├── requirements.txt         # Dépendances Python (verrouillées)
-└── .gitignore               # Exclusion des fichiers temporaires (pycache, venv)
+├── Dockerfile               # Packaging de l'application en image Docker
+├── Procfile                 # Configuration pour Render (Gunicorn)
+├── README.md                # Documentation principale
+├── requirements.txt         # Dépendances Python
+└── .gitignore               # Exclusion des secrets et fichiers temporaires
 ```
