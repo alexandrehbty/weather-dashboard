@@ -35,7 +35,7 @@ jobs:
     # 5. Lancer le serveur et les tests E2E (MODIFIÉ)
     - name: Run E2E Tests
       env:
-        API_KEY: "test_dummy_key"
+        API_KEY: ${{ secrets.API_KEY }}
       run: |
         # Lancer le serveur Flask en arrière-plan
         python app.py &
