@@ -1,0 +1,26 @@
+# =============================================================================
+# 🌦️ GEOMETEO - MODÈLE DE CONFIGURATION
+# =============================================================================
+# INSTRUCTIONS : 
+# 1. Copiez ce fichier dans le dossier du Cloud choisi (ex: terraform/aws/)
+# 2. Renommez-le en "terraform.tfvars"
+# 3. Remplissez les valeurs ci-dessous
+# =============================================================================
+
+# --- VARIABLES COMMUNES (Tous les Clouds) ---
+    openweather_api_key = "votre_cle_api_ici"
+    image_url           = "ghcr.io/votre-pseudo/weather-dashboard:main"
+
+# --- SPÉCIFIQUE : HETZNER ---
+    hcloud_token = "votre_token_hetzner"
+
+# --- SPÉCIFIQUE : OVHcloud ---
+    openstack_user_name   = "votre_user"
+    openstack_password    = "votre_password"
+    openstack_tenant_name = "votre_nom_de_projet"
+
+# --- SPÉCIFIQUE : GCP ---
+    project_id = "votre-id-projet-google"
+
+# --- SPÉCIFIQUE : ORACLE ---
+    compartment_ocid = "ocid1.compartment.oc1..."

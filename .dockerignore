@@ -1,0 +1,33 @@
+# =========================
+# ENVIRONNEMENT LOCAL
+# =========================
+venv/
+env/
+.env
+.env.*
+
+# =========================
+# CACHE & FICHIERS COMPILES
+# =========================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# =========================
+# TESTS & DOCS (Inutiles en production)
+# =========================
+htmlcov/
+.coverage
+tests/
+e2e/
+documentation_technique/
+simulation/
+
+# =========================
+# GIT & TERRAFORM
+# =========================
+.git/
+.github/
+terraform/

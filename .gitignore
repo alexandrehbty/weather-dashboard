@@ -1,7 +1,64 @@
+# =========================
+# PYTHON & FLASK
+# =========================
 __pycache__/
-htmlcov/
-.coverage
-.env
+*.py[cod]
+*$py.class
+*.so
+
+# =========================
+# ENVIRONNEMENT & SECRETS
+# =========================
+# (CRITIQUE : Ne jamais pousser les variables d'environnement)
 venv/
-documentation_technique/
-simulation/
+env/
+.env
+.env.*
+
+# =========================
+# TESTS & COVERAGE
+# =========================
+.coverage
+htmlcov/
+.pytest_cache/
+test-results/
+playwright-report/
+
+# =========================
+# OS & IDE (Editeurs de code)
+# =========================
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# =========================
+# TERRAFORM
+# =========================
+# Dossiers cachés générés par la commande "terraform init"
+**/.terraform/
+.terraform/
+
+# Fichiers d'état (CRITIQUE : Contient les secrets et l'état de l'infrastructure en clair)
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+
+# Fichiers de variables (Souvent utilisés pour passer des mots de passe locaux)
+*.tfvars
+*.tfvars.json
+terraform.tfvars
+
+# Fichiers d'écrasement local
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Fichiers de plan d'exécution (Générés par "terraform plan -out=plan.out")
+*.tfplan
+*.out
+
+# Logs de crash Terraform
+crash.log
+crash.*.log

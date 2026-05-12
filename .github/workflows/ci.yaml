@@ -13,7 +13,7 @@ jobs:
 
     steps:
     # 1. Récupérer le code
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     # 2. Installer Python
     - name: Set up Python 3.13
@@ -43,3 +43,36 @@ jobs:
         sleep 3
         # Lancer les tests E2E avec Retry
         pytest e2e/test_e2e_cold_start.py --reruns 2
+
+  build-and-push:
+    name: 🐳 Build & Push Docker Image
+    needs: [test] # Ne se lance QUE si le job "test" (tes tests actuels) a réussi
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write # Autorise GitHub Actions à publier des paquets/images
+
+    steps:
+      - name: 📥 Check out the repo
+        uses: actions/checkout@v4
+
+      - name: 🔑 Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🏷️ Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+
+      - name: 📦 Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}

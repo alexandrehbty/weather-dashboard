@@ -23,6 +23,7 @@ Le défi technique : **"Comment garantir une UX fluide et un Backend stable alor
 1.  **Intelligence Réseau (TCP-like) :** Algorithme adaptatif pour calculer les timeouts (fini les valeurs arbitraires).
 2.  **Thread Safety & Concurrence :** Gestion des verrous (`threading.Lock`) pour supporter les workers Gunicorn.
 3.  **UX Optimisée :** Autocomplétion avec Debounce, cartes interactives et feedback visuel immédiat.
+4. **L'agnosticité Cloud (Vendor Lock-in) :** Permettre à l'application de pouvoir migrer d'un Cloud à l'autre en quelques minutes via Terraform.
 
 ---
 
@@ -57,6 +58,31 @@ Le module `PortfolioBrain` implémente les standards **RFC 6298** (TCP) adaptés
 * **Autocomplétion :** Moteur de recherche ville asynchrone avec **Debouncing** (300ms) pour limiter les appels réseau inutiles.
 * **Cartographie :** Intégration Leaflet.js dynamique.
 * **UX/UI :** Design Responsive, gestion des états de chargement (`aria-busy`), et accessibilité (a11y).
+
+---
+
+## 🌍 Infrastructure as Code (IaC) - Multi-Cloud
+
+L'infrastructure du projet est entièrement codée via **Terraform**. Plutôt que de se limiter à un seul fournisseur, l'architecture a été pensée de manière modulaire pour être déployée sur **8 fournisseurs Cloud distincts**, démontrant une maîtrise des différents paradigmes d'hébergement.
+
+### 1. Le paradigme "Serverless / CaaS" (Focus Produit)
+Déploiement direct de l'image Docker avec délégation totale de l'infrastructure au Cloud Provider :
+* ☁️ **Google Cloud (GCP) :** Cloud Run (v2) avec Google Secret Manager.
+* ☁️ **AWS :** App Runner avec IAM Roles stricts et AWS Secrets Manager.
+* ☁️ **Azure :** Container Apps protégé au sein d'un Resource Group avec Log Analytics Workspace.
+* ☁️ **Scaleway :** Serverless Containers (Choix souverain européen).
+
+### 2. Le paradigme "IaaS pur" (Focus SysAdmin / Bash)
+Provisionnement de machines virtuelles nues et orchestration via des scripts `cloud-init` (User-Data) pour installer et configurer Docker au démarrage :
+* 🇩🇪 **Hetzner :** Déploiement sur instances CX (Optimisation des coûts).
+* 🇫🇷 **OVHcloud :** Interfaçage via le provider standard mondial **OpenStack**.
+
+### 3. Le paradigme "Enterprise Networking" (Focus Réseau)
+Construction de la plomberie réseau complète (VPC, Subnets, Internet Gateways, Route Tables) avant le déploiement du conteneur :
+* 🏢 **Oracle Cloud (OCI) :** OCI Container Instances dans un Compartment dédié.
+* 🇨🇳 **Alibaba Cloud :** Elastic Container Instance (ECI) avec VSwitch et Security Groups.
+
+> 🔒 **Sécurité :** L'état Terraform (`.tfstate`) et les variables locales (`.tfvars`) sont rigoureusement exclus via `.gitignore`. Les clés API ne sont **jamais** écrites en clair dans le code IaC, mais injectées dynamiquement via les gestionnaires de secrets natifs des Clouds ou par la CI/CD.
 
 ---
 
@@ -117,12 +143,16 @@ app.py                  221     47    79% <-- API Endpoints
 tests\test_suite.py     121      1    99%
 -----------------------------------------
 TOTAL                   379     53    86% <-- Production Grade
+```
 
 ---
 
-## ⚙️ Déploiement (Production / Render)
+## ⚙️ Déploiement (Production & Multi-Cloud)
 
-Le projet est configuré pour un déploiement "Cloud Native".
+Le projet est conçu avec une approche "Cloud Agnostic", permettant à la fois un déploiement rapide pour la démo et une infrastructure de niveau entreprise via l'IaC.
+
+### 1. Déploiement sur Render (Démo Live)
+Configuration utilisée pour la démonstration publique actuelle, optimisée pour les environnements contraints.
 
 * **Fichiers critiques :**
     * `app.py` : Le serveur web.
@@ -132,6 +162,21 @@ Le projet est configuré pour un déploiement "Cloud Native".
     gunicorn app:app --workers 1 --threads 4 --timeout 60
     ```
     *Note : Utilisation des threads plutôt que des workers multiples pour économiser la RAM (512 Mo limit).*
+
+### 2. Infrastructure as Code (Terraform)
+Le projet inclut une architecture modulaire complète prête à être déployée sur 8 fournisseurs Cloud différents. Tout le code d'infrastructure se trouve dans le dossier `terraform/`.
+
+* ☁️ **CaaS / Serverless :** GCP (Cloud Run), AWS (App Runner), Azure (Container Apps), Scaleway.
+* 🖥️ **IaaS (Compute brut) :** Hetzner, OVHcloud (via OpenStack).
+* 🏢 **Enterprise Networking :** Oracle Cloud (OCI), Alibaba Cloud.
+
+**Exemple de déploiement type (ex: AWS) :**
+```bash
+cd terraform/aws
+terraform init
+# Les secrets sont passés de manière sécurisée sans être stockés dans le code
+terraform apply -var="image_url=votre_repo/image:latest"
+```
 
 ---
 
