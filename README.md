@@ -41,6 +41,20 @@ Le module `PortfolioBrain` implémente les standards **RFC 6298** (TCP) adaptés
 * **Soft Decay (Gestion de l'inactivité) :** Si l'application n'est pas sollicitée pendant 10 minutes, l'algorithme augmente artificiellement la variance (`RTTVAR`) pour réagir prudemment au "réveil" (Cold Start).
 * **Thread Safety :** Utilisation de `threading.Lock()` pour garantir l'intégrité des calculs statistiques dans un environnement multi-threadé (Gunicorn).
 
+### 📊 Simulation de l'algorithme sous charge
+
+Le comportement de l'algorithme a été validé via un scénario de simulation en 5 phases :
+
+![Simulation Jacobson/Karn](simulation/resultat_graphique.png)
+
+| Phase | Requêtes | Comportement observé |
+|-------|----------|----------------------|
+| 🟢 Calme | 0-20 | Timeout descend de 5s → 2s (apprentissage) |
+| 🟡 Jitter | 20-35 | Timeout remonte légèrement (absorption instabilité) |
+| 🔴 Panne | 35-40 | Backoff exponentiel → plafond 10s (Algorithme de Karn) |
+| 🟢 Retour | 40-55 | Descente progressive (récupération) |
+| 🔵 Cold Start | 55 | Pic à 4.5s (Soft Decay au réveil) |
+
 ---
 
 ## 🛠️ Stack & Architecture
