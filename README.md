@@ -7,6 +7,7 @@
 ![Flask](https://img.shields.io/badge/Flask-3.0+-green.svg)
 ![Algorithm](https://img.shields.io/badge/Algo-Jacobson%2FKarn-orange)
 ![Status](https://img.shields.io/badge/Status-Production%20Ready-success)
+![License](https://img.shields.io/badge/License-MIT-blue.svg)
 
 > **Démonstration technique :** Conception d'un backend météo résilient ("Crash-Proof"), capable d'adapter ses timeouts en temps réel selon la congestion réseau. Optimisé pour les environnements contraints (Render Free Tier, 512Mo RAM).
 
@@ -206,5 +207,6 @@ terraform apply -var="image_url=votre_repo/image:latest"
 ├── Procfile                 # Configuration pour Render (Gunicorn)
 ├── README.md                # Documentation principale
 ├── requirements.txt         # Dépendances Python
-└── .gitignore               # Exclusion des secrets et fichiers temporaires
+├── .gitignore               # Exclusion des secrets et fichiers temporaires
+└── LICENCE                  # Signature du code
 ```
