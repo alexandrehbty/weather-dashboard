@@ -32,7 +32,7 @@ from dotenv import load_dotenv
 from flask import Flask, jsonify, render_template, request, g, send_file
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
-# ✅ IMPORT DU CERVEAU (Lien avec ton fichier algo)
+# IMPORT DU CERVEAU (Lien avec ton fichier algo)
 from algo import PortfolioBrain
 
 load_dotenv()
@@ -44,7 +44,7 @@ load_dotenv()
 class Settings:
     api_key: str
     openweather_url: str = "https://api.openweathermap.org/data/2.5/weather"
-        # ✅ URL Autocomplete (HTTPS)
+        # URL Autocomplete (HTTPS)
     geocoding_url: str = "https://api.openweathermap.org/geo/1.0/direct"
 
     # Timeouts de base (utilisés seulement pour la connexion initiale)
@@ -69,7 +69,7 @@ settings = Settings(api_key=API_KEY)
 app = Flask(__name__)
 app.config["JSONIFY_PRETTYPRINT_REGULAR"] = False
 
-# ✅ INITIALISATION DU CERVEAU (Mémoire globale)
+# INITIALISATION DU CERVEAU (Mémoire globale)
 brain = PortfolioBrain()
 
 # -----------------------------------------------------------------------------
@@ -206,7 +206,7 @@ def _map_openweather(data: Dict[str, Any]) -> Dict[str, Any]:
     display_city = f"{city_name}, {country}" if city_name and country else city_name
 
     return {
-        "city": display_city, # ✅ CORRIGÉ
+        "city": display_city,
         "temperature": main.get("temp"),
         "description": weather0.get("description", ""),
         "icon": weather0.get("icon", ""),
@@ -240,11 +240,21 @@ def _after_request(response):
         response.headers.setdefault("X-Frame-Options", "DENY")
         # Permissions-Policy minimaliste
         response.headers.setdefault("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
+        # CSP : header HTTP (la balise <meta> dans index.html ne suffit pas)
+        response.headers.setdefault(
+            "Content-Security-Policy",
+            "default-src 'self'; "
+            "img-src 'self' https: data:; "
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; "
+            "script-src 'self' 'unsafe-inline' https://unpkg.com; "
+            "connect-src 'self'; "
+            "font-src https://fonts.gstatic.com;"
+        )
 
     # Corrélation côté client si tu veux debugger
     response.headers["X-Request-Id"] = getattr(g, "request_id", "unknown")
 
-    # Log “1 ligne” par requête (Render-friendly)
+    # Log "1 ligne" par requête (Render-friendly)
     try:
         dur_ms = int((time.time() - g.start_time) * 1000)
     except Exception:
@@ -266,12 +276,17 @@ def _after_request(response):
 # -----------------------------------------------------------------------------
 @app.route("/")
 def home():
-    # ✅ IMPORTANT : Pointe vers index.html (renomme ton fichier geometeo4.html)
+    # Pointe vers index.html (renomme ton fichier geometeo4.html)
     return render_template("index.html")
 
 @app.route("/health")
 def health():
     return "ok", 200
+
+@app.route("/algo/stats")
+def algo_stats():
+    """Observabilité de l'algorithme Jacobson/Karn — utilisé par les tests E2E."""
+    return jsonify(brain.get_stats())
 
 @app.route("/autocomplete")
 def autocomplete():
@@ -350,28 +365,28 @@ def _get_weather_impl():
         "lang": "fr",
     }
 
-    # 💡 MODIFICATION : Priorité absolue aux coordonnées GPS
+    # 💡 Priorité absolue aux coordonnées GPS
     if latlon is not None:
         params["lat"], params["lon"] = latlon
     elif city:
         params["q"] = city
 
 
-    # ✅ MODIF 1 : On demande au cerveau le timeout dynamique
+    # MODIF 1 : On demande au cerveau le timeout dynamique
     dynamic_timeout = brain.get_timeout()
     timeouts = (settings.connect_timeout_s, dynamic_timeout)
 
     # 2) Appel OpenWeather
     start = time.time()
     try:
-        # ✅ CORRECTION : On utilise 'timeouts' (le dynamique) ici
+        # On utilise 'timeouts' (le dynamique) ici
         resp = session.get(
             settings.openweather_url,
             params=params,
             timeout=timeouts, 
         )
         
-        # ✅ CALCUL LATENCE (pour le cerveau et les logs)
+        # CALCUL LATENCE (pour le cerveau et les logs)
         latency = time.time() - start
         dur_ms = int(latency * 1000)
 
@@ -400,7 +415,7 @@ def _get_weather_impl():
 
         resp.raise_for_status()
         
-        # ✅ MODIF 2 : SUCCÈS -> On récompense le cerveau
+        # SUCCÈS -> On récompense le cerveau
         brain.update(latency, success=True)
         
         data = resp.json()
@@ -422,13 +437,13 @@ def _get_weather_impl():
         return jsonify(weather), 200
 
     except requests.Timeout:
-        # ✅ MODIF 3 : TIMEOUT -> On punit le cerveau (Backoff)
+        # MODIF 3 : TIMEOUT -> On punit le cerveau (Backoff)
         latency = time.time() - start
         brain.update(latency, success=False)
         return jsonify({"error": "Le service météo met trop de temps à répondre."}), 504
 
     except requests.RequestException as e:
-        # ✅ ERREUR RÉSEAU -> On punit aussi
+        # ERREUR RÉSEAU -> On punit aussi
         latency = time.time() - start
         brain.update(latency, success=False)
         

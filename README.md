@@ -200,27 +200,39 @@ terraform apply -var="image_url=votre_repo/image:latest"
 /
 ├── .github/
 │   └── workflows/
-│       └── ci.yaml          # Pipeline d'Intégration Continue (GitHub Actions)
-├── e2e/                     # Tests de bout en bout (Playwright)
-│   └── test_e2e_cold_start.py
+│       └── ci.yaml              # Pipeline d'Intégration Continue (GitHub Actions)
+├── e2e/                         # Tests de bout en bout (Playwright Grade Entreprise)
+│   ├── __init__.py              # Initialisation du package e2e pour Pytest
+│   ├── conftest.py              # Fixtures globales, Teardown (unroute_all) et compteurs
+│   ├── test_e2e.py              # Suite de 15 tests (Sécurité, LCP, Axe-core, Cache, 429)
+│   └── pages/
+│       ├── __init__.py          # Initialisation du package pages
+│       └── weather_page.py      # Page Object Model (POM) & Mocks réseau stateful
+├── simulation/                  # Outils d'analyse hors-ligne (Humains)
+│   ├── resultat_graphique.png   # Graphique de simulation de l'algorithme
+│   └── run_sim.py               # Script de benchmark visuel de Jacobson/Karn
 ├── static/
-│   ├── script.js            # Logique Frontend & Autocomplétion (Vanilla JS)
-│   └── style.css            # Design "Dark Surface & Gold" (CSS3)
+│   ├── script.js                # Logique Frontend, AbortController & Cache LRU (Vanilla JS)
+│   └── style.css                # Design "Dark Surface & Gold" (CSS3)
 ├── templates/
-│   └── index.html           # Interface utilisateur (Jinja2 Template)
-├── terraform/               # Infrastructure as Code (8 Cloud Providers)
-│   ├── aws/                 # Configuration AWS App Runner
-│   ├── azure/               # Configuration Azure Container Apps
-│   ├── gcp/                 # Configuration Google Cloud Run
-│   └── ...                  # (Autres fournisseurs)
+│   └── index.html               # Interface utilisateur & Accessibilité sémantique (Jinja2)
+├── terraform/                   # Infrastructure as Code (Agnosticité Cloud totale)
+│   ├── alibaba/                 # Configuration Alibaba Cloud (ECI, VSwitch)
+│   ├── aws/                     # Configuration AWS App Runner & Secrets Manager
+│   ├── azure/                   # Configuration Azure Container Apps & Log Analytics
+│   ├── gcp/                     # Configuration Google Cloud Run & Secret Manager
+│   ├── hetzner/                 # Configuration Instances CX (IaaS pur + Cloud-init)
+│   ├── oracle/                  # Configuration OCI Container Instances
+│   ├── ovh/                     # Configuration OVHcloud (Provider OpenStack)
+│   └── scaleway/                # Configuration Serverless Containers (Choix souverain)
 ├── tests/
-│   └── test_suite.py        # Tests unitaires (Jacobson/Karn & Endpoints)
-├── algo.py                  # Le "Cerveau" (Algorithme Jacobson & Thread Safety)
-├── app.py                   # Contrôleur Principal (Flask, Cache, Rate-Limiting)
-├── Dockerfile               # Packaging de l'application en image Docker
-├── Procfile                 # Configuration pour Render (Gunicorn)
-├── README.md                # Documentation principale
-├── requirements.txt         # Dépendances Python
-├── .gitignore               # Exclusion des secrets et fichiers temporaires
-└── LICENCE                  # Signature du code
+│   └── test_suite.py            # Tests unitaires & intégration (algo.py & app.py endpoints)
+├── algo.py                      # Le "Cerveau" (Algorithme Jacobson/Karn & Thread-Safe Lock)
+├── app.py                       # Contrôleur Principal (Flask, Cache TTL, Rate-Limiting, Logs JSON)
+├── Dockerfile                   # Packaging multi-stage de l'application en image Docker
+├── Procfile                     # Configuration pour Render (Gunicorn multi-threading)
+├── README.md                    # Documentation principale orientée architecture
+├── requirements.txt             # Dépendances Python (Flask, Playwright, Axe, Matplotlib...)
+├── .gitignore                   # Exclusion stricte des secrets, .tfstate et .venv
+└── LICENCE                      # Signature juridique du code (MIT)
 ```
