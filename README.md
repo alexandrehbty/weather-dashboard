@@ -147,17 +147,35 @@ Prérequis : Python 3.9+
 
 ## 🧪 Qualité & Tests (Quality Assurance)
 
-Le projet intègre une suite de tests unitaires automatisés (`unittest`) couvrant l'algorithme de congestion et les endpoints API critiques.
+Le projet intègre une suite de tests unitaires automatisés (`unittest`) couvrant l'algorithme de congestion et les endpoints API critiques et 23 scénarios couvrant : happy path, sécurité (XSS, CSP, headers), accessibilité WCAG 2.1 (axe-core), performance LCP, rate limiting (Flask-Limiter), cache frontend (TTL 2min),
+et l'endpoint `/algo/stats` (SRTT/RTTVAR dans les bornes RFC 6298).
 
-**Rapport de couverture (Coverage Report) :**
+**Rapport de couverture (Coverage Report) unittest :**
 ```text
 Name                  Stmts   Miss  Cover
 -----------------------------------------
 algo.py                  37      5    86% <-- Core Algorithm Logic
-app.py                  221     47    79% <-- API Endpoints
+app.py                  238     50    79% <-- API Endpoints  
 tests\test_suite.py     121      1    99%
 -----------------------------------------
-TOTAL                   379     53    86% <-- Production Grade
+TOTAL                   396     56    86% <-- Production Grade
+```
+
+**Tests E2E (Playwright) :**
+
+```text
+Category                    Tests   Pass  Cover
+-----------------------------------------------
+UX / Happy Path               4       4   100% <-- Workflow nominal
+Erreurs & Edge Cases          4       4   100% <-- 404, vide, unicode
+Résilience & Infrastructure   5       5   100% <-- Cold Start, 500, responsive
+Sécurité                      3       3   100% <-- XSS, injection, headers
+Accessibilité WCAG            2       2   100% <-- axe-core, aria
+Performance LCP               1       1   100% <-- Core Web Vitals
+Cache & Rate Limiting         2       2   100% <-- TTL 2min, Flask-Limiter
+Algo Stats (SRTT/RTTVAR)      2       2   100% <-- RFC 6298
+-----------------------------------------------
+TOTAL                        23      23   100%
 ```
 
 ---

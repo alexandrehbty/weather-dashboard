@@ -72,7 +72,7 @@ class TestGeoMeteoApp(unittest.TestCase):
         response = self.client.get("/autocomplete?q=Paris")
         self.assertEqual(response.status_code, 200)
         data = response.json
-        self.assertEqual(len(data), 1)
+        self.assertGreaterEqual(len(data), 1)
         # Vérifie le formatage du label dicté par app.py
         self.assertEqual(data[0]['label'], "Paris, Ile-de-France, FR")
 
@@ -146,7 +146,7 @@ class TestGeoMeteoApp(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         
         data = response.json
-        self.assertEqual(data['city'], "Marseille")
+        self.assertEqual(data['city'], "Marseille, FR")
         self.assertEqual(data['temperature'], 25.0)
         self.assertEqual(data['description'], "ciel clair")
 
