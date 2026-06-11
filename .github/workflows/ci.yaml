@@ -26,27 +26,32 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        pip install pytest pytest-playwright pytest-rerunfailures # NOUVEAU
+        # Ajout des librairies pour l'accessibilité et la configuration d'URL
+        pip install pytest pytest-playwright pytest-rerunfailures pytest-base-url axe-playwright-python
 
-    # 4. Installer les navigateurs pour Playwright (NOUVEAU)
+    # 4. Installer les navigateurs pour Playwright
     - name: Install Playwright Browsers
       run: playwright install --with-deps chromium
 
-    # 5. Lancer le serveur et les tests E2E (MODIFIÉ)
+    # 5. Lancer le serveur et les tests E2E
     - name: Run E2E Tests
       env:
         API_KEY: ${{ secrets.API_KEY }}
+        # Injection de la racine du projet pour résoudre les imports de modules (e2e.pages...)
+        PYTHONPATH: .
       run: |
         # Lancer le serveur Flask en arrière-plan
         python app.py &
+        
         # Attendre 3 secondes que le serveur démarre
         sleep 3
-        # Lancer les tests E2E avec Retry
-        pytest e2e/test_e2e_cold_start.py --reruns 2
+        
+        # Lancer les tests E2E "Enterprise Grade"
+        python -m pytest e2e/test_e2e.py --base-url=http://127.0.0.1:5000 --reruns 2
 
   build-and-push:
     name: 🐳 Build & Push Docker Image
-    needs: [test] # Ne se lance QUE si le job "test" (tes tests actuels) a réussi
+    needs: [test] # Ne se lance QUE si le job "test" a réussi
     runs-on: ubuntu-latest
     permissions:
       contents: read
