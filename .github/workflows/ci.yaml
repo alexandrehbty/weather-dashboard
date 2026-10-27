@@ -25,9 +25,8 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        # Ajout des librairies pour l'accessibilité et la configuration d'URL
-        pip install pytest pytest-playwright pytest-rerunfailures pytest-base-url axe-playwright-python
+        python -m pip install -r requirements.txt
+        python -m pip install pytest pytest-playwright pytest-rerunfailures pytest-base-url axe-playwright-python
 
     # 4. Installer les navigateurs pour Playwright
     - name: Install Playwright Browsers
