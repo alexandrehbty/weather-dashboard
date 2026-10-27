@@ -45,6 +45,13 @@ jobs:
         
         # Attendre 3 secondes que le serveur démarre
         sleep 3
+
+        # Vérifier si le serveur tourne, sinon afficher le crash de Flask
+        if ! curl -s http://127.0.0.1:5000 > /dev/null; then
+          echo "=== FLASK A PLANTE AU DEMARRAGE ==="
+          cat flask_error.log
+          exit 1
+        fi
         
         # Lancer les tests E2E "Enterprise Grade"
         python -m pytest e2e/test_e2e.py --base-url=http://127.0.0.1:5000 --reruns 2
