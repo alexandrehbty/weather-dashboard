@@ -1,0 +1,156 @@
+{"level": "INFO", "msg": "Rate limiting activé (mémoire)"}
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.13:5000
+[33mPress CTRL+C to quit[0m
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "afad278f83b8", "method": "GET", "path": "/", "status": 200, "duration_ms": 5}
+127.0.0.1 - - [24/Nov/2026 13:11:39] "GET / HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "bdca1666ee08", "method": "GET", "path": "/static/style.css", "status": 200, "duration_ms": 61}
+127.0.0.1 - - [24/Nov/2026 13:11:40] "GET /static/style.css HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "939d406e7c42", "method": "GET", "path": "/static/script.js", "status": 200, "duration_ms": 0}
+127.0.0.1 - - [24/Nov/2026 13:11:43] "GET /static/script.js HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "8696323fbc79", "method": "GET", "path": "/", "status": 200, "duration_ms": 0}
+127.0.0.1 - - [24/Nov/2026 13:11:44] "GET / HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "8f645e661960", "method": "GET", "path": "/static/style.css", "status": 200, "duration_ms": 0}
+127.0.0.1 - - [24/Nov/2026 13:11:44] "GET /static/style.css HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "5b5951b4d30a", "method": "GET", "path": "/static/script.js", "status": 200, "duration_ms": 0}
+127.0.0.1 - - [24/Nov/2026 13:11:44] "GET /static/script.js HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "45cf3562dc6e", "method": "GET", "path": "/autocomplete", "status": 200, "duration_ms": 510}
+127.0.0.1 - - [24/Nov/2026 13:11:45] "GET /autocomplete?q=Marseille HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "6c5f5c5e0b24", "method": "GET", "path": "/", "status": 200, "duration_ms": 0}
+127.0.0.1 - - [24/Nov/2026 13:11:45] "GET / HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "752894c356e1", "method": "GET", "path": "/static/style.css", "status": 200, "duration_ms": 0}
+127.0.0.1 - - [24/Nov/2026 13:11:45] "GET /static/style.css HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "9ff34e36ca5d", "method": "GET", "path": "/static/script.js", "status": 200, "duration_ms": 0}
+127.0.0.1 - - [24/Nov/2026 13:11:45] "GET /static/script.js HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "ff3161ea03a4", "method": "GET", "path": "/", "status": 200, "duration_ms": 0}
+127.0.0.1 - - [24/Nov/2026 13:11:46] "GET / HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "8c4c1775fbc3", "method": "GET", "path": "/static/style.css", "status": 200, "duration_ms": 0}
+127.0.0.1 - - [24/Nov/2026 13:11:46] "GET /static/style.css HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "655bf1c000b0", "method": "GET", "path": "/static/script.js", "status": 200, "duration_ms": 0}
+127.0.0.1 - - [24/Nov/2026 13:11:46] "GET /static/script.js HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "cb50d47bcc07", "method": "GET", "path": "/get_weather", "status": 200, "duration_ms": 26}
+127.0.0.1 - - [24/Nov/2026 13:11:46] "GET /get_weather?city=Par HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "af803de9be01", "method": "GET", "path": "/", "status": 200, "duration_ms": 0}
+127.0.0.1 - - [24/Nov/2026 13:11:46] "GET / HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "b5cac14b3563", "method": "GET", "path": "/static/style.css", "status": 200, "duration_ms": 0}
+127.0.0.1 - - [24/Nov/2026 13:11:46] "GET /static/style.css HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "a22f4ec70398", "method": "GET", "path": "/static/script.js", "status": 200, "duration_ms": 0}
+127.0.0.1 - - [24/Nov/2026 13:11:46] "GET /static/script.js HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "66eb7137683a", "method": "GET", "path": "/", "status": 200, "duration_ms": 0}
+127.0.0.1 - - [24/Nov/2026 13:11:47] "GET / HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "bfffdf3b942a", "method": "GET", "path": "/static/style.css", "status": 200, "duration_ms": 0}
+127.0.0.1 - - [24/Nov/2026 13:11:47] "GET /static/style.css HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "113caf6ac43f", "method": "GET", "path": "/static/script.js", "status": 200, "duration_ms": 0}
+127.0.0.1 - - [24/Nov/2026 13:11:47] "GET /static/script.js HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "5f81672bb779", "method": "GET", "path": "/", "status": 200, "duration_ms": 0}
+127.0.0.1 - - [24/Nov/2026 13:11:48] "GET / HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "40cb14113d14", "method": "GET", "path": "/static/style.css", "status": 200, "duration_ms": 0}
+127.0.0.1 - - [24/Nov/2026 13:11:48] "GET /static/style.css HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "b61474f158c4", "method": "GET", "path": "/static/script.js", "status": 200, "duration_ms": 0}
+127.0.0.1 - - [24/Nov/2026 13:11:48] "GET /static/script.js HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "60ab5d7b3566", "method": "GET", "path": "/", "status": 200, "duration_ms": 0}
+127.0.0.1 - - [24/Nov/2026 13:11:48] "GET / HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "ef48d8643c2c", "method": "GET", "path": "/static/style.css", "status": 200, "duration_ms": 0}
+127.0.0.1 - - [24/Nov/2026 13:11:48] "GET /static/style.css HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "6504f803920b", "method": "GET", "path": "/static/script.js", "status": 200, "duration_ms": 0}
+127.0.0.1 - - [24/Nov/2026 13:11:48] "GET /static/script.js HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "a5f966be4171", "method": "GET", "path": "/", "status": 200, "duration_ms": 0}
+127.0.0.1 - - [24/Nov/2026 13:11:49] "GET / HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "1261d491da7b", "method": "GET", "path": "/static/style.css", "status": 200, "duration_ms": 0}
+127.0.0.1 - - [24/Nov/2026 13:11:49] "GET /static/style.css HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "fc534fbdbbd4", "method": "GET", "path": "/static/script.js", "status": 200, "duration_ms": 0}
+127.0.0.1 - - [24/Nov/2026 13:11:49] "GET /static/script.js HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "59029d0dd929", "method": "GET", "path": "/autocomplete", "status": 200, "duration_ms": 19}
+127.0.0.1 - - [24/Nov/2026 13:11:50] "GET /autocomplete?q=Marseille HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "a541b42ebc7c", "method": "GET", "path": "/", "status": 200, "duration_ms": 0}
+127.0.0.1 - - [24/Nov/2026 13:11:54] "GET / HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "1f2adfa11e9c", "method": "GET", "path": "/static/style.css", "status": 200, "duration_ms": 0}
+127.0.0.1 - - [24/Nov/2026 13:11:54] "GET /static/style.css HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "e4b786a0736c", "method": "GET", "path": "/static/script.js", "status": 200, "duration_ms": 0}
+127.0.0.1 - - [24/Nov/2026 13:11:54] "GET /static/script.js HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "462fa9acac5e", "method": "GET", "path": "/autocomplete", "status": 200, "duration_ms": 21}
+127.0.0.1 - - [24/Nov/2026 13:11:54] "GET /autocomplete?q=Paris HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "227b9b6f4ad1", "method": "GET", "path": "/", "status": 200, "duration_ms": 0}
+127.0.0.1 - - [24/Nov/2026 13:11:56] "GET / HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "ed74f3333ca7", "method": "GET", "path": "/static/style.css", "status": 200, "duration_ms": 0}
+127.0.0.1 - - [24/Nov/2026 13:11:56] "GET /static/style.css HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "154d99dcf3fe", "method": "GET", "path": "/static/script.js", "status": 200, "duration_ms": 0}
+127.0.0.1 - - [24/Nov/2026 13:11:56] "GET /static/script.js HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "438bd686d4cf", "method": "GET", "path": "/", "status": 200, "duration_ms": 0}
+127.0.0.1 - - [24/Nov/2026 13:11:56] "GET / HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "6f7c3aaf1193", "method": "GET", "path": "/static/style.css", "status": 200, "duration_ms": 0}
+127.0.0.1 - - [24/Nov/2026 13:11:56] "GET /static/style.css HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "cd42bcb8abec", "method": "GET", "path": "/static/script.js", "status": 200, "duration_ms": 0}
+127.0.0.1 - - [24/Nov/2026 13:11:56] "GET /static/script.js HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "789ae07d14de", "method": "GET", "path": "/", "status": 200, "duration_ms": 0}
+127.0.0.1 - - [24/Nov/2026 13:11:57] "GET / HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "cd3c8ebd8895", "method": "GET", "path": "/static/style.css", "status": 200, "duration_ms": 0}
+127.0.0.1 - - [24/Nov/2026 13:11:57] "GET /static/style.css HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "572b709fbbb1", "method": "GET", "path": "/static/script.js", "status": 200, "duration_ms": 0}
+127.0.0.1 - - [24/Nov/2026 13:11:57] "GET /static/script.js HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "dcbd88b07cd3", "method": "GET", "path": "/autocomplete", "status": 200, "duration_ms": 20}
+127.0.0.1 - - [24/Nov/2026 13:11:58] "GET /autocomplete?q=Lyon HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "8f1c52f04335", "method": "GET", "path": "/algo/stats", "status": 200, "duration_ms": 0}
+127.0.0.1 - - [24/Nov/2026 13:12:00] "GET /algo/stats HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "8de2264074e0", "method": "GET", "path": "/get_weather", "status": 200, "duration_ms": 19}
+127.0.0.1 - - [24/Nov/2026 13:12:00] "GET /get_weather?city=Paris HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "b13ad2ba2cfd", "method": "GET", "path": "/algo/stats", "status": 200, "duration_ms": 0}
+127.0.0.1 - - [24/Nov/2026 13:12:00] "GET /algo/stats HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "ba6d5a8b0c14", "method": "GET", "path": "/", "status": 200, "duration_ms": 0}
+127.0.0.1 - - [24/Nov/2026 13:12:00] "GET / HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "ab9cfbb9312e", "method": "GET", "path": "/static/style.css", "status": 200, "duration_ms": 0}
+127.0.0.1 - - [24/Nov/2026 13:12:00] "GET /static/style.css HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "1a52ef745a64", "method": "GET", "path": "/static/script.js", "status": 200, "duration_ms": 0}
+127.0.0.1 - - [24/Nov/2026 13:12:00] "GET /static/script.js HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "bed6bb077f71", "method": "GET", "path": "/", "status": 200, "duration_ms": 0}
+127.0.0.1 - - [24/Nov/2026 13:12:01] "GET / HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "cf5dfc03d7ce", "method": "GET", "path": "/static/style.css", "status": 200, "duration_ms": 0}
+127.0.0.1 - - [24/Nov/2026 13:12:01] "GET /static/style.css HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "2d0e29db2bae", "method": "GET", "path": "/static/script.js", "status": 200, "duration_ms": 0}
+127.0.0.1 - - [24/Nov/2026 13:12:01] "GET /static/script.js HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "5eb15a70d7f2", "method": "GET", "path": "/", "status": 200, "duration_ms": 0}
+127.0.0.1 - - [24/Nov/2026 13:12:02] "GET / HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "47dcdf844526", "method": "GET", "path": "/static/style.css", "status": 200, "duration_ms": 0}
+127.0.0.1 - - [24/Nov/2026 13:12:02] "GET /static/style.css HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "18790a3ec8f7", "method": "GET", "path": "/static/script.js", "status": 200, "duration_ms": 0}
+127.0.0.1 - - [24/Nov/2026 13:12:02] "GET /static/script.js HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "ed22a6a85b44", "method": "GET", "path": "/", "status": 200, "duration_ms": 0}
+127.0.0.1 - - [24/Nov/2026 13:12:02] "GET / HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "578d23064a8d", "method": "GET", "path": "/static/style.css", "status": 200, "duration_ms": 0}
+127.0.0.1 - - [24/Nov/2026 13:12:02] "GET /static/style.css HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "11ed81eaaf13", "method": "GET", "path": "/static/script.js", "status": 200, "duration_ms": 0}
+127.0.0.1 - - [24/Nov/2026 13:12:02] "GET /static/script.js HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "8d440776db4c", "method": "GET", "path": "/autocomplete", "status": 200, "duration_ms": 18}
+127.0.0.1 - - [24/Nov/2026 13:12:03] "GET /autocomplete?q=Marseille HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "a91641590ecf", "method": "GET", "path": "/", "status": 200, "duration_ms": 0}
+127.0.0.1 - - [24/Nov/2026 13:12:03] "GET / HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "4ecd60e4cde6", "method": "GET", "path": "/static/style.css", "status": 200, "duration_ms": 0}
+127.0.0.1 - - [24/Nov/2026 13:12:03] "GET /static/style.css HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "b301a87ac342", "method": "GET", "path": "/static/script.js", "status": 200, "duration_ms": 0}
+127.0.0.1 - - [24/Nov/2026 13:12:04] "GET /static/script.js HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "9a477d77d2c4", "method": "GET", "path": "/", "status": 200, "duration_ms": 0}
+127.0.0.1 - - [24/Nov/2026 13:12:04] "GET / HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "76c7a40d7dd8", "method": "GET", "path": "/static/style.css", "status": 200, "duration_ms": 0}
+127.0.0.1 - - [24/Nov/2026 13:12:04] "GET /static/style.css HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "66a2d07c0190", "method": "GET", "path": "/static/script.js", "status": 200, "duration_ms": 0}
+127.0.0.1 - - [24/Nov/2026 13:12:04] "GET /static/script.js HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "e00983b5d52e", "method": "GET", "path": "/", "status": 200, "duration_ms": 0}
+127.0.0.1 - - [24/Nov/2026 13:12:05] "GET / HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "118026d50ae9", "method": "GET", "path": "/static/style.css", "status": 200, "duration_ms": 0}
+127.0.0.1 - - [24/Nov/2026 13:12:05] "GET /static/style.css HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "15482d1d1563", "method": "GET", "path": "/static/script.js", "status": 200, "duration_ms": 0}
+127.0.0.1 - - [24/Nov/2026 13:12:05] "GET /static/script.js HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "4c07f91856df", "method": "GET", "path": "/", "status": 200, "duration_ms": 0}
+127.0.0.1 - - [24/Nov/2026 13:12:05] "GET / HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "734700da6be7", "method": "GET", "path": "/static/style.css", "status": 200, "duration_ms": 0}
+127.0.0.1 - - [24/Nov/2026 13:12:05] "GET /static/style.css HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "1418e5d94ee9", "method": "GET", "path": "/static/script.js", "status": 200, "duration_ms": 0}
+127.0.0.1 - - [24/Nov/2026 13:12:05] "GET /static/script.js HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "00b128a34a8b", "method": "GET", "path": "/", "status": 200, "duration_ms": 0}
+127.0.0.1 - - [24/Nov/2026 13:12:06] "GET / HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "77a9665fe700", "method": "GET", "path": "/static/style.css", "status": 200, "duration_ms": 0}
+127.0.0.1 - - [24/Nov/2026 13:12:06] "GET /static/style.css HTTP/1.1" 200 -
+{"level": "INFO", "msg": "HTTP request completed", "request_id": "a6080ff0aa9a", "method": "GET", "path": "/static/script.js", "status": 200, "duration_ms": 0}
+127.0.0.1 - - [24/Nov/2026 13:12:06] "GET /static/script.js HTTP/1.1" 200 -

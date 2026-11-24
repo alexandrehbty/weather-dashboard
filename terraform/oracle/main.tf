@@ -1,63 +1,123 @@
-# 1. Configuration du fournisseur Oracle Cloud
-provider "oci" {
-  region = var.region
-  # L'authentification (tenancy_ocid, user_ocid, private_key) est 
-  # généralement lue automatiquement via les variables d'environnement locales
+#Oracle
+terraform {
+  required_version = ">= 1.5.0"
+
+  required_providers {
+    oci = {
+      source  = "oracle/oci"
+      version = "~> 9.0"
+    }
+  }
 }
 
-# Récupération de la première Zone de Disponibilité du datacenter
+# Authentification via profil CLI (~/.oci/config) ou variables d'environnement :
+# TF_VAR_tenancy_ocid / OCI_TENANCY_OCID, OCI_USER_OCID, OCI_FINGERPRINT, OCI_PRIVATE_KEY_PATH
+provider "oci" {
+  region = var.region
+}
+
+locals {
+  common_tags = {
+    Project   = "GeoMeteo"
+    ManagedBy = "Terraform"
+  }
+}
+
+# Récupération automatique de la première Availability Domain de la région
 data "oci_identity_availability_domains" "ads" {
   compartment_id = var.compartment_ocid
 }
 
-# 2. Création du Réseau (VCN - Virtual Cloud Network)
+# 1. Réseau : VCN avec résolution DNS activée
 resource "oci_core_vcn" "weather_vcn" {
   compartment_id = var.compartment_ocid
   display_name   = "weather-portfolio-vcn"
-  cidr_block     = "10.0.0.0/16"
+  cidr_blocks    = ["10.0.0.0/16"]
+  dns_label      = "geometeovcn"
+  freeform_tags  = local.common_tags
 }
 
-# 3. Accès à Internet : Création de la passerelle et de la table de routage
+# 2. Accès Internet : Passerelle et table de routage
 resource "oci_core_internet_gateway" "weather_igw" {
   compartment_id = var.compartment_ocid
-  display_name   = "weather-portfolio-igw"
   vcn_id         = oci_core_vcn.weather_vcn.id
+  display_name   = "weather-portfolio-igw"
+  enabled        = true
+  freeform_tags  = local.common_tags
 }
 
 resource "oci_core_route_table" "weather_route_table" {
   compartment_id = var.compartment_ocid
   vcn_id         = oci_core_vcn.weather_vcn.id
   display_name   = "weather-portfolio-rt"
+  freeform_tags  = local.common_tags
 
   route_rules {
+    description       = "Routage du trafic sortant vers Internet"
     destination       = "0.0.0.0/0"
     destination_type  = "CIDR_BLOCK"
     network_entity_id = oci_core_internet_gateway.weather_igw.id
   }
 }
 
-# 4. Création du Sous-réseau Public
-resource "oci_core_subnet" "weather_subnet" {
-  compartment_id    = var.compartment_ocid
-  vcn_id            = oci_core_vcn.weather_vcn.id
-  display_name      = "weather-portfolio-subnet"
-  cidr_block        = "10.0.1.0/24"
-  route_table_id    = oci_core_route_table.weather_route_table.id
-  
-  # Pare-feu basique géré directement via une liste de sécurité par défaut
+# 3. Pare-feu : Security List explicite (le défaut OCI bloque le port 80)
+resource "oci_core_security_list" "weather_sl" {
+  compartment_id = var.compartment_ocid
+  vcn_id         = oci_core_vcn.weather_vcn.id
+  display_name   = "weather-portfolio-sl"
+  freeform_tags  = local.common_tags
+
+  # Trafic entrant : uniquement HTTP sur le port 80 (pas de SSH exposé)
+  ingress_security_rules {
+    description = "Autoriser le trafic HTTP entrant vers GeoMeteo"
+    protocol    = "6" # TCP
+    source      = "0.0.0.0/0"
+    source_type = "CIDR_BLOCK"
+    stateless   = false
+
+    tcp_options {
+      min = 80
+      max = 80
+    }
+  }
+
+  # Trafic sortant : autorisé pour le pull d'image, le DNS et les appels HTTPS OpenWeather
+  egress_security_rules {
+    description      = "Autoriser le trafic sortant (pull image, DNS, API OpenWeather)"
+    protocol         = "all"
+    destination      = "0.0.0.0/0"
+    destination_type = "CIDR_BLOCK"
+    stateless        = false
+  }
 }
 
-# 5. Le Conteneur : OCI Container Instance (Serverless)
+# 4. Sous-réseau public avec pare-feu et DNS attachés
+resource "oci_core_subnet" "weather_subnet" {
+  compartment_id             = var.compartment_ocid
+  vcn_id                     = oci_core_vcn.weather_vcn.id
+  display_name               = "weather-portfolio-subnet"
+  cidr_block                 = "10.0.1.0/24"
+  dns_label                  = "geometeosub"
+  prohibit_public_ip_on_vnic = false
+  route_table_id             = oci_core_route_table.weather_route_table.id
+  security_list_ids          = [oci_core_security_list.weather_sl.id]
+  freeform_tags              = local.common_tags
+}
+
+# 5. Conteneur managé : OCI Container Instance
+# Note PoC : la clé API est injectée en variable d'environnement ; en production OCI,
+# on couplerait OCI Vault avec un Dynamic Group dédié.
 resource "oci_container_instances_container_instance" "weather_app" {
   compartment_id           = var.compartment_ocid
   display_name             = "weather-dashboard-ci"
   availability_domain      = data.oci_identity_availability_domains.ads.availability_domains[0].name
   container_restart_policy = "ALWAYS"
-  shape                    = "CI.Standard.E4.Flex" # Type de processeur basique
+  shape                    = var.shape
+  freeform_tags            = local.common_tags
 
   shape_config {
-    ocpus         = 1
-    memory_in_gbs = 2
+    ocpus         = var.ocpus
+    memory_in_gbs = var.memory_in_gbs
   }
 
   vnics {
@@ -70,12 +130,25 @@ resource "oci_container_instances_container_instance" "weather_app" {
     display_name = "weather-container"
     image_url    = var.image_url
 
-    # Injection de la clé API
     environment_variables = {
       API_KEY = var.openweather_api_key
     }
+
+    health_checks {
+      name                     = "geometeo-health"
+      health_check_type        = "HTTP"
+      path                     = "/health"
+      port                     = 80
+      initial_delay_in_seconds = 5
+      interval_in_seconds      = 15
+      timeout_in_seconds       = 3
+      failure_threshold        = 3
+      failure_action           = "KILL"
+    }
   }
-  
-  # Note de Senior : En production sur Oracle, on utiliserait le service OCI Vault 
-  # pour injecter le secret, mais cela requiert la création de "Dynamic Groups" complexes.
+}
+
+# Récupération des détails de l'interface réseau pour exposer l'IP publique
+data "oci_core_vnic" "weather_vnic" {
+  vnic_id = oci_container_instances_container_instance.weather_app.vnics[0].vnic_id
 }

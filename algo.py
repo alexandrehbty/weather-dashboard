@@ -1,143 +1,108 @@
-import time
+"""
+Gestion adaptative des timeouts réseau basée sur les algorithmes de Jacobson et Karn (RFC 6298).
+
+Conçu pour une exécution multi-threadée en mémoire (ex. Gunicorn --workers 1 --threads 4)
+sans dépendance externe (pas de Redis requis).
+"""
+
+from __future__ import annotations
+
+import math
 import threading
+import time
+from typing import Callable, Dict
+
 
 class PortfolioBrain:
-    """
-    Cerveau de gestion des timeouts réseau (Algorithme Jacobson/TCP).
-    
-    CONTEXTE DE DÉPLOIEMENT :
-    -------------------------
-    - Plateforme : Render Cloud (Free Tier)
-    - Contrainte : 512 Mo RAM max
-    - Architecture : Stateless (pas de Redis) -> État stocké en mémoire instance.
-    - Concurrence : Thread-Safe (Optimisé pour Gunicorn avec Workers threadés).
-    """
+    """Calcule dynamiquement un timeout de lecture HTTP à partir des latences observées."""
 
-    # --- Constantes de Configuration (Optimisées Free Tier) ---
-    
-    # Plancher de sécurité (1.0s) :
-    # Sur un Cloud mutualisé (Free Tier), le CPU peut être throttlé.
-    # On laisse une marge d'1s pour ne pas confondre "lenteur CPU" et "panne réseau".
-    TIMEOUT_MIN = 1.0
-    
-    # Plafond UX (10.0s) :
-    # Si Render met plus de 10s, l'utilisateur est déjà parti.
-    # Autant couper la connexion pour libérer le thread Gunicorn.
-    TIMEOUT_MAX = 10.0
-    
-    DEFAULT_TIMEOUT = 3.0
-    
-    # Gestion du "Cold Start" (Démarrage à froid) :
-    # Les instances Free Tier s'endorment après inactivité.
-    # Après 10 min (600s), on considère que le contexte réseau a changé.
-    MEMORY_TTL = 600  
+    # Bornes du RTO (Retransmission Timeout) en secondes
+    TIMEOUT_MIN: float = 1.0
+    TIMEOUT_MAX: float = 10.0
+    DEFAULT_TIMEOUT: float = 3.0
 
-    def __init__(self):
-        # 🔒 LOCK (THREAD SAFETY) : CRITIQUE SUR 512 Mo RAM
-        # Pour économiser la RAM, on utilise des Threads plutôt que des Processus multiples.
-        # Ce verrou empêche deux requêtes simultanées de corrompre les calculs de latence.
+    # Paramètres RFC 6298 (Jacobson/Karels)
+    ALPHA: float = 0.125
+    BETA: float = 0.25
+    K: float = 4.0
+
+    # État initial et bornes de la variance
+    INITIAL_RTTVAR: float = 0.5
+    RTTVAR_MAX: float = 2.5
+    FAILURE_RTTVAR_STEP: float = 0.5
+
+    # Seuil d'inactivité (secondes) déclenchant le Soft Decay (Cold Start)
+    MEMORY_TTL: float = 600.0
+    SOFT_DECAY_MIN_RTTVAR: float = 1.0
+
+    def __init__(self, clock: Callable[[], float] = time.monotonic) -> None:
         self._lock = threading.Lock()
+        self._clock = clock
 
-        # --- État initial (Algorithme de Jacobson) ---
-        
-        # SRTT (Smoothed Round Trip Time) : La "Moyenne"
-        # Initialisé à 3s pour être tolérant au démarrage (Cold Start de l'API externe)
-        self.srtt = self.DEFAULT_TIMEOUT
-        
-        # RTTVAR (Round Trip Time Variation) : L' "Incertitude"
-        # Initialisé à 0.5s. Plus c'est haut, plus on prend de marge.
-        self.rttvar = 0.5
-        
-        # Le timeout actuel calculé (Ready to use)
-        self.current_timeout = self._calc_timeout_unsafe()
-        
-        self.last_request_time = time.time()
+        self.srtt: float = self.DEFAULT_TIMEOUT
+        self.rttvar: float = self.INITIAL_RTTVAR
+        self.current_timeout: float = self._calc_timeout_unsafe()
+        self.last_request_time: float = self._clock()
 
-    def _calc_timeout_unsafe(self):
-        """
-        Calcul pur du RTO (Retransmission Timeout).
-        [Interne] Doit toujours être appelé sous Lock.
-        """
-        # Formule TCP standard (RFC 6298) : Moyenne + 4 * Variation
-        # Pourquoi 4 ? Pour couvrir 99.9% des cas statistiques et éviter les faux positifs.
-        rto = self.srtt + (4 * self.rttvar)
-        
-        # Bornage de sécurité (Clamp)
+    def _calc_timeout_unsafe(self) -> float:
+        """Calcule le RTO selon RFC 6298 (SRTT + K * RTTVAR). Doit être appelé sous verrou."""
+        rto = self.srtt + (self.K * self.rttvar)
         return max(self.TIMEOUT_MIN, min(self.TIMEOUT_MAX, rto))
 
-    def get_timeout(self):
-        """
-        Appelé AVANT une requête pour savoir combien de temps attendre.
-        Gère intelligemment les réveils de l'instance (Soft Decay).
-        """
+    def get_timeout(self) -> float:
+        """Retourne le timeout à appliquer avant une requête et gère le Soft Decay après inactivité."""
         with self._lock:
-            # 1. Vérification de l'inactivité (Instance endormie ?)
-            time_since_last = time.time() - self.last_request_time
-            
+            now = self._clock()
+            time_since_last = now - self.last_request_time
+
             if time_since_last > self.MEMORY_TTL:
-                # --- STRATÉGIE "SOFT DECAY" ---
-                # L'instance se réveille ou n'a pas servi depuis longtemps.
-                # On ne reset pas tout (pour garder l'historique), mais on double l'incertitude.
-                # Cela élargit le timeout par prudence pour la première requête.
-                self.rttvar = max(self.rttvar * 2, 1.0)
-                
-                # Recalcul immédiat avec cette nouvelle prudence
+                # Élargit prudemment la variance au réveil sans effacer l'historique SRTT
+                self.rttvar = min(
+                    self.RTTVAR_MAX,
+                    max(self.rttvar * 2.0, self.SOFT_DECAY_MIN_RTTVAR),
+                )
                 self.current_timeout = self._calc_timeout_unsafe()
-                
-                # On "touche" le timestamp pour ne pas répéter l'opération
-                self.last_request_time = time.time()
+                self.last_request_time = now
 
             return self.current_timeout
 
-    def update(self, observed_latency, success: bool):
-        """
-        Appelé APRÈS une requête pour nourrir l'algorithme.
-        C'est ici que l'apprentissage a lieu.
-        
-        :param observed_latency: Temps mis par la requête (en secondes)
-        :param success: True si le réseau a répondu, False si Timeout/Erreur.
+    def update(self, observed_latency: float, success: bool) -> None:
+        """Met à jour l'état de l'algorithme après un appel réseau.
+
+        Args:
+            observed_latency: Durée de la requête en secondes (ignorée si success=False).
+            success: True si le serveur distant a répondu, False en cas de timeout ou d'erreur réseau.
         """
         with self._lock:
-            self.last_request_time = time.time()
+            self.last_request_time = self._clock()
 
             if not success:
-                # --- PUNITION (Algorithme de Karn) ---
-                # Le réseau est instable ou l'API est down.
-                # On ignore cette mesure (car faussée) et on double le timeout (Backoff).
-                # Cela évite de marteler une API qui souffre déjà (Bonne pratique Cloud).
-                self.current_timeout = min(self.TIMEOUT_MAX, self.current_timeout * 2)
-                
-                # On augmente l'incertitude pour les prochains coups
-                self.rttvar += 0.5
-            
-            else:
-                # --- RÉCOMPENSE (Algorithme de Jacobson) ---
-                # Tout va bien, on affine le modèle mathématique.
-                
-                # 1. L'Erreur (Différence entre notre prédiction et la réalité)
-                diff = observed_latency - self.srtt
-                
-                # 2. Mise à jour de la Moyenne (Alpha = 0.125)
-                # On lisse doucement (12.5% de poids à la nouvelle mesure)
-                self.srtt = self.srtt + (0.125 * diff)
-                
-                # 3. Mise à jour de la Variance (Beta = 0.25)
-                # Si la latence est stable, rttvar diminue -> timeout plus court et réactif.
-                # Si la latence fait le yoyo, rttvar augmente -> timeout plus large et sûr.
-                self.rttvar = self.rttvar + (0.25 * (abs(diff) - self.rttvar))
-                
-                # 4. Mise à jour finale
-                self.current_timeout = self._calc_timeout_unsafe()
+                # Règle de Karn : on ignore la latence et on applique un backoff exponentiel
+                self.current_timeout = min(self.TIMEOUT_MAX, self.current_timeout * 2.0)
+                self.rttvar = min(self.RTTVAR_MAX, self.rttvar + self.FAILURE_RTTVAR_STEP)
+                return
 
-    def get_stats(self):
-        """
-        Observabilité légère (Pas d'agent Datadog/NewRelic pour économiser la RAM).
-        Permet de vérifier la santé du système via des logs simples.
-        """
+            if not isinstance(observed_latency, (int, float)) or not math.isfinite(observed_latency):
+                return
+
+            latency = max(0.0, float(observed_latency))
+
+            # Mise à jour RFC 6298 (RTTVAR calculé avant l'actualisation de SRTT)
+            diff = latency - self.srtt
+            self.rttvar = min(
+                self.RTTVAR_MAX,
+                self.rttvar + self.BETA * (abs(diff) - self.rttvar),
+            )
+            self.srtt = self.srtt + self.ALPHA * diff
+            self.current_timeout = self._calc_timeout_unsafe()
+
+    def get_stats(self) -> Dict[str, float]:
+        """Expose les métriques internes pour l'observabilité (/algo/stats)."""
         with self._lock:
+            idle_sec = max(0.0, self._clock() - self.last_request_time)
             return {
-                "srtt": round(self.srtt, 3),            # Latence moyenne estimée
-                "rttvar": round(self.rttvar, 3),        # Instabilité du réseau
-                "timeout": round(self.current_timeout, 3), # Timeout appliqué
-                "idle_sec": round(time.time() - self.last_request_time, 1) # Temps depuis dernier appel
+                "srtt": round(self.srtt, 3),
+                "rttvar": round(self.rttvar, 3),
+                "timeout": round(self.current_timeout, 3),
+                "idle_sec": round(idle_sec, 1),
             }

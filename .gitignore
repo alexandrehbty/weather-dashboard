@@ -62,3 +62,13 @@ override.tf.json
 # Logs de crash Terraform
 crash.log
 crash.*.log
+
+# Plan nommé sans extension (si tu utilises "terraform plan -out=tfplan")
+tfplan
+
+# Configuration CLI Terraform locale
+.terraformrc
+terraform.rc
+
+# Optionnel sur ce projet : évite un conflit de hashes Windows / Linux en CI
+.terraform.lock.hcl

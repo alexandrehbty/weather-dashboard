@@ -10,10 +10,9 @@
           img-src 'self' https: data:;
           style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com;
           font-src https://fonts.gstatic.com;
-          script-src 'self' 'unsafe-inline' https://unpkg.com;
+          script-src 'self' https://unpkg.com;
           connect-src 'self';
           base-uri 'self';
-          frame-ancestors 'none';
         " />
 
   <title>Mon Portfolio - Météo en temps réel</title>
@@ -37,42 +36,49 @@
 </head>
 
 <body>
-    <header class="main-header">
-        <div class="container navbar">
-            <a href="https://alexandrehbty.github.io/portfolio/" class="logo">Mon Portfolio</a>
-            <div class="menu-toggle" id="mobile-menu">
-                <span></span>
-                <span></span>
-                <span></span>
-            </div>
-            <nav class="nav-links" id="nav-menu">
-                <ul>
-                    <li><a href="https://alexandrehbty.github.io/portfolio/#hero">Accueil</a></li>
-                    <li><a href="https://alexandrehbty.github.io/portfolio/#about">À Propos</a></li>
-                    <li><a href="https://alexandrehbty.github.io/portfolio/#skills">Compétences</a></li>
-                    <li><a href="https://alexandrehbty.github.io/portfolio/#portfolio">Portfolio</a></li>
-                    <li><a href="https://alexandrehbty.github.io/portfolio/#contact">Contact</a></li>
-                </ul>
-            </nav>
-        </div>
-    </header>
-
   <a class="skip-link" href="#weather-app-content">Aller au contenu météo</a>
 
-  <div class="breadcrumb">
+  <header class="main-header">
+    <div class="container navbar">
+      <a href="https://alexandrehbty.github.io/portfolio/" class="logo">Mon Portfolio</a>
+      <button
+        type="button"
+        class="menu-toggle"
+        id="mobile-menu"
+        aria-label="Ouvrir le menu de navigation"
+        aria-expanded="false"
+        aria-controls="nav-menu"
+      >
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <nav class="nav-links" id="nav-menu" aria-label="Navigation principale">
+        <ul>
+          <li><a href="https://alexandrehbty.github.io/portfolio/#hero">Accueil</a></li>
+          <li><a href="https://alexandrehbty.github.io/portfolio/#about">À Propos</a></li>
+          <li><a href="https://alexandrehbty.github.io/portfolio/#skills">Compétences</a></li>
+          <li><a href="https://alexandrehbty.github.io/portfolio/#portfolio">Portfolio</a></li>
+          <li><a href="https://alexandrehbty.github.io/portfolio/#contact">Contact</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <nav class="breadcrumb" aria-label="Fil d'Ariane">
     <div class="container">
       <ul>
         <li><a href="https://alexandrehbty.github.io/portfolio/#hero">Accueil</a></li>
         <li><a href="https://alexandrehbty.github.io/portfolio/#portfolio">Portfolio</a></li>
-        <li><a href="#">Météo en temps réel</a></li>
+        <li><a href="#" aria-current="page">Météo en temps réel</a></li>
       </ul>
     </div>
-  </div>
+  </nav>
 
   <main>
     <section id="weather-app-content">
       <div class="container">
-        <h2>Météo en temps réel ☀️</h2>
+        <h1>Météo en temps réel ☀️</h1>
         <p style="color: var(--text-color-muted); max-width: 700px; margin: 0 auto 30px;">
           Découvrez une application météo haute performance conçue pour la résilience. Au-delà de l'affichage en temps réel, ce projet intègre un algorithme adaptatif (Jacobson/Karn) qui ajuste les requêtes selon la congestion réseau pour garantir une stabilité maximale. Un condensé d'ingénierie backend sous Flask, optimisé pour le Cloud.
         </p>
@@ -93,10 +99,8 @@
               spellcheck="false"
               aria-describedby="city-help"
             />
-            
-            <datalist id="city-suggestions"></datalist>
 
-            <div id="autocomplete-results" class="autocomplete-items"></div>
+            <datalist id="city-suggestions"></datalist>
 
             <button type="submit" id="search-btn">Rechercher</button>
           </form>
@@ -109,13 +113,12 @@
                aria-live="polite"
                aria-atomic="true"></div>
 
-          <div id="map" aria-label="Localisation géographique de la ville recherchée."></div>
+          <div id="map" role="region" aria-label="Localisation géographique de la ville recherchée."></div>
         </div>
 
         <div class="readme-download">
-            <a href="/download/readme" download="README.md">Télécharger le README.md</a>
+          <a href="/download/readme" download="README.md">Télécharger le README.md</a>
         </div>
-
       </div>
     </section>
 
@@ -142,7 +145,7 @@
 
   <footer class="main-footer">
     <div class="container">
-      <p>&copy; © 2026 Alexandre Huberty - Portfolio. Tous droits réservés.</p>
+      <p>&copy; 2026 Alexandre Huberty - Portfolio. Tous droits réservés.</p>
     </div>
   </footer>
 

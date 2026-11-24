@@ -1,6 +1,10 @@
-# Output : Afficher l'URL pour accéder au site
-
+#Scaleway
 output "app_url" {
-  value       = "https://${scaleway_container.weather_app.domain_name}"
-  description = "L'URL publique générée par Scaleway Serverless Containers"
+  value       = scaleway_container.weather_app.public_endpoint
+  description = "URL HTTPS publique générée par Scaleway Serverless Containers"
+}
+
+output "container_status" {
+  value       = scaleway_container.weather_app.status
+  description = "Statut de déploiement du conteneur Scaleway"
 }

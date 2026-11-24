@@ -1,89 +1,176 @@
-name: GeoMeteo CI 🌦️
+name: GeoMeteo CI
 
-# Déclencheur : Sur chaque push ou pull request sur la branche main
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  test:
-    runs-on: ubuntu-24.04   # <-- Remplacez ubuntu-latest par ubuntu-24.04
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-24.04
 
     steps:
-    # 1. Récupérer le code
-    - uses: actions/checkout@v4
+      - name: Check out repository
+        uses: actions/checkout@v7
 
-    # 2. Installer Python
-    - name: Set up Python 3.13
-      uses: actions/setup-python@v5
-      with:
-        python-version: "3.13"
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+          cache: "pip"
 
-    # 3. Installer les dépendances
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        python -m pip install -r requirements.txt
-        python -m pip install pytest pytest-playwright pytest-rerunfailures pytest-base-url axe-playwright-python
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install pytest
 
-    # 4. Installer les navigateurs pour Playwright
-    - name: Install Playwright Browsers
-      run: playwright install --with-deps chromium
+      - name: Run unit tests
+        env:
+          PYTHONPATH: .
+          API_KEY: "ci-unit-test-dummy-key"
+        run: python -m pytest tests/test_unitaire.py -v
 
-    # 5. Lancer le serveur et les tests E2E
-    - name: Run E2E Tests
-      env:
-        API_KEY: ${{ secrets.API_KEY }}
-        # Injection de la racine du projet pour résoudre les imports de modules (e2e.pages...)
-        PYTHONPATH: .
-      run: |
-        # Lancer Flask en arrière-plan ET rediriger les flux vers flask_error.log
-        python app.py > flask_error.log 2>&1 &
-        
-        # Attendre 3 secondes que le serveur démarre
-        sleep 3
+  e2e-tests:
+    name: E2E Tests (Playwright)
+    runs-on: ubuntu-24.04
 
-        # Vérifier si le serveur tourne, sinon afficher le contenu de flask_error.log
-        if ! curl -s http://127.0.0.1:5000 > /dev/null; then
-          echo "=== FLASK A PLANTE AU DEMARRAGE ==="
-          cat flask_error.log
-          exit 1
-        fi
-        
-        # Lancer les tests E2E
-        python -m pytest e2e/test_e2e.py --base-url=http://127.0.0.1:5000 --reruns 2
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install pytest pytest-playwright pytest-rerunfailures pytest-base-url axe-playwright-python
+
+      - name: Install Playwright Chromium
+        run: playwright install --with-deps chromium
+
+      - name: Start Flask and run E2E suite
+        env:
+          API_KEY: ${{ secrets.API_KEY }}
+          PYTHONPATH: .
+        run: |
+          python app.py > flask_error.log 2>&1 &
+          FLASK_PID=$!
+          trap 'kill "$FLASK_PID" 2>/dev/null || true' EXIT
+
+          for i in $(seq 1 15); do
+            if curl -fsS http://127.0.0.1:5000/health > /dev/null; then
+              break
+            fi
+            if ! kill -0 "$FLASK_PID" 2>/dev/null; then
+              echo "=== Flask a plante au demarrage ==="
+              cat flask_error.log
+              exit 1
+            fi
+            sleep 1
+          done
+
+          if ! curl -fsS http://127.0.0.1:5000/health > /dev/null; then
+            echo "=== Timeout au demarrage de Flask ==="
+            cat flask_error.log
+            exit 1
+          fi
+
+          python -m pytest e2e/test_e2e.py --base-url=http://127.0.0.1:5000 --reruns 2 -v || {
+            echo "=== Logs Flask ==="
+            cat flask_error.log
+            exit 1
+          }
+
+  terraform-validate:
+    name: Terraform Validate (${{ matrix.cloud }})
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        cloud:
+          - alibaba
+          - aws
+          - azure
+          - gcp
+          - hetzner
+          - oracle
+          - ovh
+          - scaleway
+
+    defaults:
+      run:
+        working-directory: terraform/${{ matrix.cloud }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: "1.14.6"
+          terraform_wrapper: false
+
+      - name: Check HCL formatting
+        run: terraform fmt -check -diff
+
+      - name: Initialize without backend
+        run: terraform init -backend=false -input=false
+
+      - name: Validate configuration
+        run: terraform validate
 
   build-and-push:
-    name: 🐳 Build & Push Docker Image
-    needs: [test] # Ne se lance QUE si le job "test" a réussi
-    runs-on: ubuntu-latest
+    name: Build & Push Docker Image
+    needs: [unit-tests, e2e-tests, terraform-validate]
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
-      packages: write # Autorise GitHub Actions à publier des paquets/images
+      packages: write
 
     steps:
-      - name: 📥 Check out the repo
-        uses: actions/checkout@v4
+      - name: Check out repository
+        uses: actions/checkout@v7
 
-      - name: 🔑 Log in to GitHub Container Registry
-        uses: docker/login-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GitHub Container Registry
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 🏷️ Extract metadata (tags, labels) for Docker
+      - name: Extract Docker metadata
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ghcr.io/${{ github.repository }}
 
-      - name: 📦 Build and push Docker image
-        uses: docker/build-push-action@v5
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v7
         with:
           context: .
-          push: true
+          push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

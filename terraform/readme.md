@@ -1,85 +1,56 @@
-# 🌍 GeoMeteo — Infrastructure as Code (Multi-Cloud) - ![Status](https://img.shields.io/badge/Status-Ready-orange)
+# GeoMeteo — Infrastructure Terraform (Multi-Cloud)
 
-Ce répertoire contient l'intégralité de la configuration **Terraform** permettant de déployer l'application GeoMeteo de manière agnostique sur les principaux fournisseurs Cloud du marché.
+Ce dossier regroupe huit déclinaisons Terraform autonomes (Terraform `>= 1.5.0`) pour déployer **GeoMeteo** selon trois approches : **Serverless**, **Conteneurs managés** et **IaaS (VM + Cloud-Init)**.
 
----
+> **Périmètre de validation :** l'application tourne en démonstration sur Render. Ces huit configurations sont vérifiées statiquement (`terraform fmt` et `terraform validate` sans backend distant) mais ne sont pas maintenues actives sur huit comptes Cloud payants.
 
-## 📂 Structure du Répertoire
+## Comparatif des architectures
 
-L'infrastructure est organisée par fournisseur. Chaque dossier est autonome et contient sa propre logique de déploiement :
+| Fournisseur | Service | Modèle | Accès | Secret `API_KEY` | Registre Docker |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `aws/` | App Runner | PaaS / Serverless | HTTPS | Secrets Manager + IAM | ECR Public (`public.ecr.aws/`) |
+| `azure/` | Container Apps | Serverless | HTTPS | Secret natif | GHCR public |
+| `gcp/` | Cloud Run v2 | Serverless | HTTPS | Secret Manager + IAM | Artifact Registry |
+| `scaleway/` | Serverless Containers | Serverless | HTTPS | Secret natif | GHCR public |
+| `alibaba/` | ECI | Conteneur managé | HTTP (`80`) | Variable d'environnement | GHCR public |
+| `oracle/` | Container Instances | Conteneur managé | HTTP (`80`) | Variable d'environnement | GHCR public |
+| `hetzner/` | VM `cx23` + Cloud-Init | IaaS | HTTP (`80`) | `/etc/geometeo.env` (`600`) | GHCR public |
+| `ovh/` | OpenStack `d2-2` + Cloud-Init | IaaS | HTTP (`80`) | `/etc/geometeo.env` (`600`) | GHCR public |
 
-* **`alibaba/`** : Deployment sur Alibaba Cloud Elastic Container Instance (ECI).
-* **`aws/`** : Utilisation de AWS App Runner (PaaS).
-* **`azure/`** : Déploiement sur Azure Container Apps.
-* **`gcp/`** : Utilisation de Google Cloud Run (Serverless).
-* **`hetzner/`** : Provisionnement d'instances Cloud avec Cloud-Init (IaaS).
-* **`oracle/`** : Déploiement sur Oracle Cloud Container Instances.
-* **`ovh/`** : Instance Public Cloud via OpenStack (IaaS).
-* **`scaleway/`** : Utilisation de Serverless Containers.
+## Choix d'architecture et compromis
 
----
+* **Serverless vs IaaS :** les plateformes managées (`aws/`, `azure/`, `gcp/`, `scaleway/`) gèrent nativement le TLS, l'injection sécurisée des secrets et le *scale-to-zero* (hormis App Runner, maintenu à `min = 1`). Les déploiements IaaS (`hetzner/`, `ovh/`) et conteneurs simples (`alibaba/`, `oracle/`) exposent le port `80` en HTTP pur pour rester légers ; en production, un reverse proxy TLS ou un Load Balancer managé s'ajoute en frontal.
+* **Sécurité et observabilité :** chaque module épingle son provider (`required_providers`), expose une sortie `app_url` homogène et sonde `/health` sur le port `80`. Sur Hetzner et OVHcloud, le port SSH (`22`) est fermé par défaut dans le pare-feu et ne s'ouvre que sur des CIDR explicites (`ssh_allowed_cidrs`).
+* **Contraintes de registres :** l'image publiée sur `ghcr.io` est directement utilisable sur six fournisseurs. AWS App Runner impose un miroir Amazon ECR Public (contrôlé par validation dans `variables.tf`), et Google Cloud Run attend Artifact Registry (ou un *remote repository* pointant vers GHCR).
+* **Garde-fous FinOps & état :** les services auto-scalables sont plafonnés à `2` instances maximum et dimensionnés au plus près de l'empreinte mémoire de GeoMeteo (`512 Mo` lorsque les paliers le permettent). L'état `terraform.tfstate` reste local (et ignoré par Git) dans ce cadre de démonstration ; en équipe, il basculerait sur un backend distant chiffré avec verrouillage (d'autant que le `user_data` des déploiements IaaS y est conservé).
 
-## 🛠️ Prérequis
+## Validation locale (sans identifiants Cloud)
 
-Avant de commencer, assurez-vous d'avoir :
-1.  **Terraform CLI** (v1.5.0+) installé.
-2.  Des **identifiants valides** (clés d'accès, tokens) pour le fournisseur Cloud choisi.
-3.  L'**image Docker** du projet publiée sur un registre (ex: GHCR).
+```bash
+terraform fmt -check -recursive
 
----
-
-## 🚀 Procédure de Déploiement
-
-Pour déployer l'infrastructure sur n'importe quel fournisseur, suivez ces étapes standardisées :
-
-### 1. Préparation des secrets
-À la racine de ce dossier `terraform/`, vous trouverez un fichier modèle nommé `terraform.tfvars.example`.
-
-1.  Entrez dans le dossier du fournisseur choisi :
-    ```hcl
-    cd terraform/aws  # Exemple pour AWS
-    ```
-2.  Copiez le modèle de configuration :
-    ```hcl
-    cp ../terraform.tfvars.example ./terraform.tfvars
-    ```
-3.  Ouvrez `terraform.tfvars` et renseignez vos informations réelles (Clé API OpenWeather, URL de l'image, etc.).
-
-### 2. Initialisation
-Préparez l'environnement Terraform et téléchargez les plugins nécessaires :
-```hcl
-terraform init
+for dir in alibaba aws azure gcp hetzner oracle ovh scaleway; do
+  (cd "$dir" && terraform init -backend=false -input=false && terraform validate) || exit 1
+done
 ```
 
-### 3. Planification (Vérification)
-Pour visualisez les ressources qui vont être créées, utilisé ceci :
-```hcl
-terraform plan
+## Déploiement rapide
+
+Les variables d'authentification propres à chaque fournisseur sont documentées en en-tête de son `main.tf`. Les fichiers `terraform.tfvars` et `*.tfstate` sont exclus du dépôt via `.gitignore`.
+
+```bash
+cd scaleway                                        # Exemple
+cp ../terraform.tfvars.example ./terraform.tfvars  # Décommenter la section utile
+export TF_VAR_openweather_api_key="..."            # Évite d'écrire la clé sur disque
+terraform init && terraform plan && terraform apply
 ```
 
-### 4. Application (Déploiement)
-Pour lancez la création réelle de l'infrastructure sur le Cloud :
-```hcl
-terraform apply
-```
-Tapez ``` yes ``` pour confirmer l'action quand cela vous sera demandé.
+## Nettoyage (éviter toute facturation)
 
----
+Après un test de déploiement, exécutez la suppression depuis le même dossier (avec les mêmes identifiants Cloud chargés) pour détruire l'ensemble des ressources provisionnées :
 
-## 🏁 Résultats & Accès
-
-Une fois le déploiement terminé, Terraform affichera l'URL ou l'IP publique de votre application via la section ```Outputs``` :
-```hcl
-app_url = "https://weather-dashboard-xxxx.cloud.run"
-```
-Il vous suffit de copier cette adresse dans votre navigateur pour accéder à votre instance GeoMeteo en direct.
-
----
-
-## 🧹 Nettoyage (Destruction)
-
-Pour supprimer toutes les ressources créées et éviter toute facturation inutile après vos tests :
-```hcl
+```bash
 terraform destroy
 ```
-Confirmez avec ```yes```.
+
+> Les options de rétention bloquantes sont désactivées dans ce cadre de test (`recovery_window_in_days = 0` sur AWS Secrets Manager, `deletion_protection = false` sur Cloud Run) afin de permettre une suppression immédiate et complète. Pensez tout de même à vérifier la console du fournisseur en cas d'interruption en cours de destruction.
