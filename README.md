@@ -179,10 +179,10 @@ Pour le détail des prérequis, variables (`terraform.tfvars.example`) et comman
 
 Les commits de ce dépôt sont signés cryptographiquement avec **GnuPG (Kleopatra / OpenPGP)** afin de garantir l'authenticité de leur auteur (badge `Verified` sur GitHub).
 
-La clé publique associée est disponible dans le dépôt (`<nom_du_fichier.asc>`). Pour l'importer et vérifier les signatures en local :
+La clé publique associée est disponible dans le dépôt (`public_key.asc`). Pour l'importer et vérifier les signatures en local :
 
 ```bash
-gpg --import <nom_du_fichier.asc>
+gpg --import public_key.asc
 git log --show-signature -n 5
 ```
 
@@ -230,6 +230,6 @@ git log --show-signature -n 5
 ├── README.md                           # Documentation principale
 ├── requirements.txt                    # Dépendances Python
 ├── .gitignore                          # Exclusions Git (secrets, .env, états Terraform, venv)
-├── <nom_du_fichier.asc>                # Clé publique OpenPGP (vérification des commits signés)
+├── public_key.asc                      # Clé publique OpenPGP (vérification des commits signés)
 └── LICENCE                             # Licence MIT
 ```
