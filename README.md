@@ -1,256 +1,235 @@
-# 🌦️ GeoMeteo — Architecture Résiliente & Algorithmique
+# 🌦️ GeoMeteo
 
-![CI Status](https://github.com/alexandrehbty/weather-dashboard/actions/workflows/ci.yaml/badge.svg)
-![Coverage](https://img.shields.io/badge/Coverage-86%25-brightgreen.svg)
-![E2E Tests](https://img.shields.io/badge/E2E%20Tests-Success%20100%25-green.svg)
+[![CI](https://github.com/alexandrehbty/weather-dashboard/actions/workflows/ci.yaml/badge.svg)](https://github.com/alexandrehbty/weather-dashboard/actions/workflows/ci.yaml)
 ![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)
-![Flask](https://img.shields.io/badge/Flask-3.0+-green.svg)
-![Algorithm](https://img.shields.io/badge/Algo-Jacobson%2FKarn-orange)
-![Status](https://img.shields.io/badge/Status-Production%20Ready-success)
+![E2E](https://img.shields.io/badge/E2E-Playwright-45ba4b.svg)
+![Terraform](https://img.shields.io/badge/Terraform-8%20Clouds-7B42BC.svg)
 ![License](https://img.shields.io/badge/License-MIT-blue.svg)
 
-> **Démonstration technique :** Conception d'un backend météo résilient ("Crash-Proof"), capable d'adapter ses timeouts en temps réel selon la congestion réseau. Optimisé pour les environnements contraints (Render Free Tier, 512Mo RAM).
+Application web météo sous Flask conçue autour de la résilience réseau : calcul dynamique des timeouts HTTP (algorithme de Jacobson/Karn), cache en mémoire borné et limitation de débit, optimisée pour un hébergement contraint (Render Free Tier, 512 Mo de RAM).
 
-🔗 **Démo Live :** https://weather-dashboard-c7gh.onrender.com/
-
----
-
-## 🎯 Philosophie du Projet
-
-Ce projet dépasse le simple wrapper d'API. C'est une **preuve de concept (PoC)** sur la fiabilité des systèmes distribués.
-Le défi technique : **"Comment garantir une UX fluide et un Backend stable alors que l'infrastructure sous-jacente (Cloud Free Tier) et les API tierces sont imprévisibles ?"**
-
-### Points forts techniques :
-1.  **Intelligence Réseau (TCP-like) :** Algorithme adaptatif pour calculer les timeouts (fini les valeurs arbitraires).
-2.  **Thread Safety & Concurrence :** Gestion des verrous (`threading.Lock`) pour supporter les workers Gunicorn.
-3.  **UX Optimisée :** Autocomplétion avec Debounce, cartes interactives et feedback visuel immédiat.
-4. **L'agnosticité Cloud (Vendor Lock-in) :** Permettre à l'application de pouvoir migrer d'un Cloud à l'autre en quelques minutes via Terraform.
+Démo en ligne : https://weather-dashboard-c7gh.onrender.com/
 
 ---
 
-## 🧠 Le "Cerveau" : Algorithme Jacobson/Karn (`algo.py`)
+## Objectifs techniques
 
-C'est le cœur du système. Au lieu d'utiliser un timeout statique (ex: 5s), l'application écoute le réseau et apprend.
+L'application répond à un problème concret : maintenir un backend stable et une interface réactive lorsque l'infrastructure (environnement gratuit, démarrages à froid) et les API tierces présentent une latence variable.
 
-### Implémentation technique :
-Le module `PortfolioBrain` implémente les standards **RFC 6298** (TCP) adaptés au niveau applicatif :
+- **Timeouts adaptatifs (`algo.py`)** : remplacement des timeouts statiques par un calcul dynamique basé sur la latence observée.
+- **Concurrence maîtrisée** : état partagé protégé par verrou (`threading.Lock`) pour une exécution multi-threadée sous Gunicorn sans dépendance externe (pas de Redis).
+- **Interface sobre et résiliente** : autocomplétion avec debounce, carte interactive Leaflet, annulation des requêtes concurrentes (`AbortController`) et accessibilité WCAG.
+- **Portabilité Cloud** : configurations Terraform multi-cloud pour 8 fournisseurs, validées statiquement en CI.
 
-* **SRTT (Smoothed Round Trip Time) :** Moyenne glissante de la latence.
-* **RTTVAR (Round Trip Time Variation) :** Calcul du Jitter (instabilité).
-* **Algorithme de Karn :** En cas d'échec (timeout/erreur), on ignore la mesure et on applique un *Backoff Exponentiel* (doublement du timeout) pour laisser le réseau respirer.
-* **Soft Decay (Gestion de l'inactivité) :** Si l'application n'est pas sollicitée pendant 10 minutes, l'algorithme augmente artificiellement la variance (`RTTVAR`) pour réagir prudemment au "réveil" (Cold Start).
-* **Thread Safety :** Utilisation de `threading.Lock()` pour garantir l'intégrité des calculs statistiques dans un environnement multi-threadé (Gunicorn).
+---
 
-### 📊 Simulation de l'algorithme sous charge
+## Algorithme adaptatif (`algo.py`)
 
-Le comportement de l'algorithme a été validé via un scénario de simulation en 5 phases :
+La classe `PortfolioBrain` adapte les principes de la **RFC 6298** (TCP) au calcul du timeout de lecture HTTP (borné entre `1.0 s` et `10.0 s`) :
+
+- **SRTT (Smoothed Round Trip Time)** : moyenne glissante exponentielle de la latence (`alpha = 0.125`).
+- **RTTVAR (Round Trip Time Variation)** : estimation de la gigue réseau (`beta = 0.25`, `K = 4`).
+- **Règle de Karn** : en cas d'échec ou de timeout, la mesure est ignorée et le timeout est doublé jusqu'au plafond (`10.0 s`).
+- **Soft Decay (Cold Start)** : après 10 minutes d'inactivité (`MEMORY_TTL = 600 s`), la variance `RTTVAR` est élargie au réveil afin d'absorber un pic de latence sans effacer l'historique `SRTT`.
+- **Horloge monotone et thread-safety** : utilisation de `time.monotonic` (injectable pour les tests et simulations) et protection des lectures/écritures par `threading.Lock`.
+
+### Simulation hors-ligne
+
+Le script `simulation/run_sim.py` rejoue un scénario en 6 phases via une horloge virtuelle et génère le graphique suivant :
 
 ![Simulation Jacobson/Karn](simulation/resultat_graphique.png)
 
 | Phase | Requêtes | Comportement observé |
-|-------|----------|----------------------|
-| 🟢 Calme | 0-20 | Timeout descend de 5s → 2s (apprentissage) |
-| 🟡 Jitter | 20-35 | Timeout remonte légèrement (absorption instabilité) |
-| 🔴 Panne | 35-40 | Backoff exponentiel → plafond 10s (Algorithme de Karn) |
-| 🟢 Retour | 40-55 | Descente progressive (récupération) |
-| 🔵 Cold Start | 55 | Pic à 4.5s (Soft Decay au réveil) |
+| :--- | :--- | :--- |
+| Calme | 0–19 | Convergence progressive du timeout de 5 s vers ~2 s |
+| Jitter | 20–34 | Augmentation modérée du timeout pour absorber la variance |
+| Panne | 35–39 | Backoff exponentiel jusqu'au plafond de 10 s (règle de Karn) |
+| Retour à la normale | 40–54 | Décroissance progressive vers le régime nominal |
+| Cold Start (12 min d'inactivité) | 55 | Pic de sécurité (Soft Decay) au réveil |
+| Stabilisation | 56–65 | Retour rapide vers la borne basse |
 
----
+Pour régénérer le graphique :
 
-## 🛠️ Stack & Architecture
-
-### Backend (Python/Flask)
-* **Entry Point :** `app.py` (Architecture Flask Factory simplifiée).
-* **Resilience HTTP :** `requests.Session` avec `HTTPAdapter` pour gérer les retries automatiques (Retry strategy : 2 essais, Backoff factor 0.4).
-* **Sécurité :**
-    * **HTTPS Enforced :** Appels API OpenWeather sécurisés.
-    * **Rate Limiting :** Protection in-memory via `Flask-Limiter` pour éviter les abus.
-    * **Headers HTTP :** HSTS, X-Frame-Options, CSP.
-* **Caching Stratégique :** Cache LRU (Least Recently Used) en mémoire avec TTL court (120s) pour économiser les quotas API sans saturer la RAM.
-
-### Frontend (Vanilla JS)
-* **Single Page :** `index.html` servie par Flask (Jinja2).
-* **Autocomplétion :** Moteur de recherche ville asynchrone avec **Debouncing** (300ms) pour limiter les appels réseau inutiles.
-* **Cartographie :** Intégration Leaflet.js dynamique.
-* **UX/UI :** Design Responsive, gestion des états de chargement (`aria-busy`), et accessibilité (a11y).
-
----
-
-## 🌍 Infrastructure as Code (IaC) - Multi-Cloud
-
-L'infrastructure du projet est entièrement codée via **Terraform**. Plutôt que de se limiter à un seul fournisseur, l'architecture a été pensée de manière modulaire pour être déployée sur **8 fournisseurs Cloud distincts**, démontrant une maîtrise des différents paradigmes d'hébergement.
-
-### 1. Le paradigme "Serverless / CaaS" (Focus Produit)
-Déploiement direct de l'image Docker avec délégation totale de l'infrastructure au Cloud Provider :
-* ☁️ **Google Cloud (GCP) :** Cloud Run (v2) avec Google Secret Manager.
-* ☁️ **AWS :** App Runner avec IAM Roles stricts et AWS Secrets Manager.
-* ☁️ **Azure :** Container Apps protégé au sein d'un Resource Group avec Log Analytics Workspace.
-* ☁️ **Scaleway :** Serverless Containers (Choix souverain européen).
-
-### 2. Le paradigme "IaaS pur" (Focus SysAdmin / Bash)
-Provisionnement de machines virtuelles nues et orchestration via des scripts `cloud-init` (User-Data) pour installer et configurer Docker au démarrage :
-* 🇩🇪 **Hetzner :** Déploiement sur instances CX (Optimisation des coûts).
-* 🇫🇷 **OVHcloud :** Interfaçage via le provider standard mondial **OpenStack**.
-
-### 3. Le paradigme "Enterprise Networking" (Focus Réseau)
-Construction de la plomberie réseau complète (VPC, Subnets, Internet Gateways, Route Tables) avant le déploiement du conteneur :
-* 🏢 **Oracle Cloud (OCI) :** OCI Container Instances dans un Compartment dédié.
-* 🇨🇳 **Alibaba Cloud :** Elastic Container Instance (ECI) avec VSwitch et Security Groups.
-
-> 🔒 **Sécurité :** L'état Terraform (`.tfstate`) et les variables locales (`.tfvars`) sont rigoureusement exclus via `.gitignore`. Les clés API ne sont **jamais** écrites en clair dans le code IaC, mais injectées dynamiquement via les gestionnaires de secrets natifs des Clouds ou par la CI/CD.
-
----
-
-## 🚀 Installation & Démarrage Local
-
-Prérequis : Python 3.9+
-
-1.  **Cloner le dépôt**
-    ```bash
-    git clone [https://github.com/alexandrehbty/weather-dashboard.git](https://github.com/alexandrehbty/weather-dashboard.git)
-    cd weather-dashboard
-    ```
-
-2.  **Créer l'environnement virtuel**
-    ```bash
-    # Mac/Linux
-    python3 -m venv .venv
-    source .venv/bin/activate
-
-    # Windows
-    python -m venv .venv
-    .venv\Scripts\activate
-    ```
-
-3.  **Installer les dépendances**
-    ```bash
-    pip install -r requirements.txt
-    ```
-
-4.  **Configuration (.env)**
-    Créez un fichier `.env` à la racine :
-    ```ini
-    # Obtenez votre clé sur [https://home.openweathermap.org/api_keys](https://home.openweathermap.org/api_keys)
-    API_KEY=votre_cle_api_openweather
-    FLASK_DEBUG=1
-    # Paramètres avancés (Defaults robustes inclus dans le code)
-    CACHE_TTL_S=120
-    ```
-
-5.  **Lancer le serveur**
-    ```bash
-    python app.py
-    ```
-    Accédez à `http://localhost:5000`
-
----
-
-## 🧪 Qualité & Tests (Quality Assurance)
-
-Le projet intègre une suite de tests unitaires automatisés (`unittest`) couvrant l'algorithme de congestion et les endpoints API critiques et 23 scénarios couvrant : happy path, sécurité (XSS, CSP, headers), accessibilité WCAG 2.1 (axe-core), performance LCP, rate limiting (Flask-Limiter), cache frontend (TTL 2min),
-et l'endpoint `/algo/stats` (SRTT/RTTVAR dans les bornes RFC 6298).
-
-**Rapport de couverture (Coverage Report) unittest :**
-```text
-Name                  Stmts   Miss  Cover
------------------------------------------
-algo.py                  37      5    86% <-- Core Algorithm Logic
-app.py                  238     50    79% <-- API Endpoints  
-tests\test_suite.py     121      1    99%
------------------------------------------
-TOTAL                   396     56    86% <-- Production Grade
-```
-
-**Tests E2E (Playwright) :**
-
-```text
-Category                    Tests   Pass  Cover
------------------------------------------------
-UX / Happy Path               4       4   100% <-- Workflow nominal
-Erreurs & Edge Cases          4       4   100% <-- 404, vide, unicode
-Résilience & Infrastructure   5       5   100% <-- Cold Start, 500, responsive
-Sécurité                      3       3   100% <-- XSS, injection, headers
-Accessibilité WCAG            2       2   100% <-- axe-core, aria
-Performance LCP               1       1   100% <-- Core Web Vitals
-Cache & Rate Limiting         2       2   100% <-- TTL 2min, Flask-Limiter
-Algo Stats (SRTT/RTTVAR)      2       2   100% <-- RFC 6298
------------------------------------------------
-TOTAL                        23      23   100%
-```
-
----
-
-## ⚙️ Déploiement (Production & Multi-Cloud)
-
-Le projet est conçu avec une approche "Cloud Agnostic", permettant à la fois un déploiement rapide pour la démo et une infrastructure de niveau entreprise via l'IaC.
-
-### 1. Déploiement sur Render (Démo Live)
-Configuration utilisée pour la démonstration publique actuelle, optimisée pour les environnements contraints.
-
-* **Fichiers critiques :**
-    * `app.py` : Le serveur web.
-    * `requirements.txt` : Les dépendances (gunicorn, flask, requests...).
-* **Start Command (Render) :**
-    ```bash
-    gunicorn app:app --workers 1 --threads 4 --timeout 60
-    ```
-    *Note : Utilisation des threads plutôt que des workers multiples pour économiser la RAM (512 Mo limit).*
-
-### 2. Infrastructure as Code (Terraform)
-Le projet inclut une architecture modulaire complète prête à être déployée sur 8 fournisseurs Cloud différents. Tout le code d'infrastructure se trouve dans le dossier `terraform/`.
-
-* ☁️ **CaaS / Serverless :** GCP (Cloud Run), AWS (App Runner), Azure (Container Apps), Scaleway.
-* 🖥️ **IaaS (Compute brut) :** Hetzner, OVHcloud (via OpenStack).
-* 🏢 **Enterprise Networking :** Oracle Cloud (OCI), Alibaba Cloud.
-
-**Exemple de déploiement type (ex: AWS) :**
 ```bash
-cd terraform/aws
-terraform init
-# Les secrets sont passés de manière sécurisée sans être stockés dans le code
-terraform apply -var="image_url=votre_repo/image:latest"
+python simulation/run_sim.py
 ```
 
 ---
 
-## 📂 Structure du projet
+## Architecture et stack technique
+
+### Backend (`app.py`, `algo.py`)
+
+- **Framework** : Python 3.10+, Flask 3, Gunicorn (`--workers 1 --threads 4`).
+- **Client HTTP résilient** : `requests.Session` avec `HTTPAdapter` (retries automatiques avec backoff exponentiel sur erreurs transitoires).
+- **Cache en mémoire** : cache LRU borné avec TTL configurable (`CACHE_TTL_S=120` par défaut) pour limiter les appels OpenWeather et maîtriser l'empreinte mémoire.
+- **Sécurité et observabilité** :
+  - Limitation de débit en mémoire via `Flask-Limiter`.
+  - En-têtes HTTP de sécurité (HSTS, `X-Frame-Options`, CSP) et identifiant de corrélation.
+  - Endpoints de supervision : `/health` (sonde de santé) et `/algo/stats` (métriques `srtt`, `rttvar`, `timeout`, `idle_sec`).
+
+### Frontend (`templates/index.html`, `static/script.js`, `static/style.css`)
+
+- **Vanilla JS** : construction DOM sécurisée (sans `innerHTML` sur les données métier), gestion des timeouts/retries côté client, annulation des requêtes obsolètes (`AbortController`) et cache `Map` avec TTL (2 min).
+- **Autocomplétion** : interrogation asynchrone de `/autocomplete` avec debounce (`300 ms`) et priorité aux coordonnées GPS lors de la sélection d'une suggestion.
+- **Cartographie** : intégration Leaflet.js avec clic interactif sur la carte (throttling `800 ms`) pour interroger la météo par coordonnées.
+- **Responsive et accessibilité** : mise en page adaptée aux smartphones (320 px à 480 px+), tablettes et desktop, lien d'évitement, navigation clavier et attributs ARIA (`aria-live`, `aria-busy`).
+
+---
+
+## Installation et démarrage local
+
+Prérequis : **Python 3.10+**
+
+1. **Cloner le dépôt**
+
+   ```bash
+   git clone https://github.com/alexandrehbty/weather-dashboard.git
+   cd weather-dashboard
+   ```
+
+2. **Créer et activer l'environnement virtuel**
+
+   ```bash
+   # Linux / macOS
+   python3 -m venv venv
+   source venv/bin/activate
+
+   # Windows (PowerShell)
+   python -m venv venv
+   .\venv\Scripts\Activate.ps1
+   ```
+
+3. **Installer les dépendances**
+
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. **Configurer les variables d'environnement**
+
+   Créer un fichier `.env` à la racine du projet :
+
+   ```ini
+   # Clé API OpenWeather : https://home.openweathermap.org/api_keys
+   API_KEY=votre_cle_api_openweather
+   FLASK_DEBUG=1
+   CACHE_TTL_S=120
+   ```
+
+5. **Lancer le serveur local**
+
+   ```bash
+   python app.py
+   ```
+
+   L'application est accessible sur `http://127.0.0.1:5000`.
+
+---
+
+## Tests et intégration continue
+
+Le pipeline GitHub Actions (`.github/workflows/ci.yaml`) exécute automatiquement à chaque push :
+
+1. **Tests unitaires (`tests/test_unitaire.py`)** : 29 tests couvrant `PortfolioBrain` (Jacobson, Karn, Soft Decay, thread-safety), le cache LRU/TTL et les routes Flask (validation des paramètres, mapping des codes HTTP, en-têtes de sécurité).
+2. **Tests E2E (`e2e/test_e2e.py`)** : suite Playwright avec Page Object Model (`e2e/pages/weather_page.py`) couvrant le parcours nominal, les cas d'erreur, la résilience réseau, la sécurité (XSS, CSP), l'accessibilité WCAG 2.1 (`axe-playwright-python`), le cache frontend, le rate limiting et `/algo/stats`.
+3. **Validation statique Terraform** : matrice sur les 8 fournisseurs Cloud (`terraform fmt -check`, `terraform init -backend=false`, `terraform validate`).
+4. **Build Docker** : construction et publication de l'image sur GHCR (`ghcr.io`).
+
+### Exécution locale
+
+```bash
+# Tests unitaires
+python -m pytest tests/test_unitaire.py -v
+
+# Tests unitaires avec rapport de couverture
+python -m pytest tests/test_unitaire.py --cov=algo --cov=app --cov-report=term-missing
+
+# Tests E2E (nécessite le serveur Flask démarré sur le port 5000)
+python -m pytest e2e/test_e2e.py --base-url=http://127.0.0.1:5000 --reruns 2 -v
+```
+
+---
+
+## Déploiement et Infrastructure as Code
+
+### Déploiement Render (démo publique)
+
+La démo est déployée avec Gunicorn en mode mono-worker / multi-thread afin de rester sous la limite de 512 Mo de RAM :
+
+```bash
+gunicorn app:app --workers 1 --threads 4 --timeout 60
+```
+
+### Configurations Terraform multi-cloud (`terraform/`)
+
+Le dossier `terraform/` regroupe 8 implémentations couvrant trois paradigmes d'hébergement :
+
+- **Serverless / CaaS** : AWS (`App Runner`), Azure (`Container Apps`), GCP (`Cloud Run v2`), Scaleway (`Serverless Containers`).
+- **IaaS avec cloud-init** : Hetzner Cloud (instances CX), OVHcloud (OpenStack).
+- **Conteneurs managés avec réseau dédié (VPC/VCN)** : Alibaba Cloud (ECI), Oracle Cloud Infrastructure (Container Instances).
+
+Ces configurations sont validées statiquement en local et en CI (`fmt`, `init -backend=false`, `validate`) sans déploiement cloud actif afin d'éviter tout coût d'infrastructure. Les fichiers d'état (`.tfstate`), de variables locales (`*.tfvars`) et de verrouillage (`.terraform.lock.hcl`) sont exclus par `.gitignore`.
+
+Pour le détail des prérequis, variables (`terraform.tfvars.example`) et commandes de validation, consulter [terraform/README.md](terraform/README.md).
+
+---
+
+## Intégrité et signature des commits
+
+Les commits de ce dépôt sont signés cryptographiquement avec **GnuPG (Kleopatra / OpenPGP)** afin de garantir l'authenticité de leur auteur (badge `Verified` sur GitHub).
+
+La clé publique associée est disponible dans le dépôt (`<nom_du_fichier.asc>`). Pour l'importer et vérifier les signatures en local :
+
+```bash
+gpg --import <nom_du_fichier.asc>
+git log --show-signature -n 5
+```
+
+---
+
+## Structure du projet
+
 ```text
-/
+.
 ├── .github/
 │   └── workflows/
-│       └── ci.yaml              # Pipeline d'Intégration Continue (GitHub Actions)
-├── e2e/                         # Tests de bout en bout (Playwright Grade Entreprise)
-│   ├── __init__.py              # Initialisation du package e2e pour Pytest
-│   ├── conftest.py              # Fixtures globales, Teardown (unroute_all) et compteurs
-│   ├── test_e2e.py              # Suite de 15 tests (Sécurité, LCP, Axe-core, Cache, 429)
+│       └── ci.yaml                     # Pipeline CI (tests unitaires, E2E, Terraform, Docker)
+├── e2e/
+│   ├── __init__.py
+│   ├── conftest.py                     # Fixtures Playwright et nettoyage des mocks réseau
+│   ├── test_e2e.py                     # Suite de tests E2E (UX, sécurité, WCAG, résilience)
 │   └── pages/
-│       ├── __init__.py          # Initialisation du package pages
-│       └── weather_page.py      # Page Object Model (POM) & Mocks réseau stateful
-├── simulation/                  # Outils d'analyse hors-ligne (Humains)
-│   ├── resultat_graphique.png   # Graphique de simulation de l'algorithme
-│   └── run_sim.py               # Script de benchmark visuel de Jacobson/Karn
+│       ├── __init__.py
+│       └── weather_page.py             # Page Object Model (POM)
+├── simulation/
+│   ├── resultat_graphique.png          # Graphique de simulation Jacobson/Karn
+│   └── run_sim.py                      # Script de simulation à horloge virtuelle
 ├── static/
-│   ├── script.js                # Logique Frontend, AbortController & Cache LRU (Vanilla JS)
-│   └── style.css                # Design "Dark Surface & Gold" (CSS3)
+│   ├── script.js                       # Client JS (AbortController, cache TTL, Leaflet)
+│   └── style.css                       # Feuille de style responsive (mobile-friendly)
 ├── templates/
-│   └── index.html               # Interface utilisateur & Accessibilité sémantique (Jinja2)
-├── terraform/                   # Infrastructure as Code (Agnosticité Cloud totale)
-│   ├── alibaba/                 # Configuration Alibaba Cloud (ECI, VSwitch)
-│   ├── aws/                     # Configuration AWS App Runner & Secrets Manager
-│   ├── azure/                   # Configuration Azure Container Apps & Log Analytics
-│   ├── gcp/                     # Configuration Google Cloud Run & Secret Manager
-│   ├── hetzner/                 # Configuration Instances CX (IaaS pur + Cloud-init)
-│   ├── oracle/                  # Configuration OCI Container Instances
-│   ├── ovh/                     # Configuration OVHcloud (Provider OpenStack)
-│   └── scaleway/                # Configuration Serverless Containers (Choix souverain)
+│   └── index.html                      # Template Jinja2 (CSP, sémantique et A11Y)
+├── terraform/
+│   ├── alibaba/                        # Alibaba Cloud (ECI, VPC/VSwitch)
+│   ├── aws/                            # AWS (App Runner, Secrets Manager)
+│   ├── azure/                          # Azure (Container Apps, Log Analytics)
+│   ├── gcp/                            # GCP (Cloud Run v2, Secret Manager)
+│   ├── hetzner/                        # Hetzner Cloud (VM + cloud-init)
+│   ├── oracle/                         # OCI (Container Instances, VCN)
+│   ├── ovh/                            # OVHcloud (OpenStack + cloud-init)
+│   ├── scaleway/                       # Scaleway (Serverless Containers)
+│   ├── README.md                       # Documentation d'architecture et validation IaC
+│   └── terraform.tfvars.example        # Modèle de variables Terraform
 ├── tests/
-│   └── test_suite.py            # Tests unitaires & intégration (algo.py & app.py endpoints)
-├── algo.py                      # Le "Cerveau" (Algorithme Jacobson/Karn & Thread-Safe Lock)
-├── app.py                       # Contrôleur Principal (Flask, Cache TTL, Rate-Limiting, Logs JSON)
-├── Dockerfile                   # Packaging multi-stage de l'application en image Docker
-├── Procfile                     # Configuration pour Render (Gunicorn multi-threading)
-├── README.md                    # Documentation principale orientée architecture
-├── requirements.txt             # Dépendances Python (Flask, Playwright, Axe, Matplotlib...)
-├── .gitignore                   # Exclusion stricte des secrets, .tfstate et .venv
-└── LICENCE                      # Signature juridique du code (MIT)
+│   └── test_unitaire.py                # Tests unitaires (algo.py, cache LRU, app.py)
+├── algo.py                             # Algorithme Jacobson/Karn (RFC 6298) thread-safe
+├── app.py                              # Application Flask (API météo, cache, rate limiting)
+├── Dockerfile                          # Image conteneur de l'application
+├── Procfile                            # Commande de démarrage Gunicorn (Render)
+├── README.md                           # Documentation principale
+├── requirements.txt                    # Dépendances Python
+├── .gitignore                          # Exclusions Git (secrets, .env, états Terraform, venv)
+├── <nom_du_fichier.asc>                # Clé publique OpenPGP (vérification des commits signés)
+└── LICENCE                             # Licence MIT
 ```
